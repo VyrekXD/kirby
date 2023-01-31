@@ -3,13 +3,16 @@ package starboard
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/json"
 )
 
 func starboardInteractivo(ctx *handler.CommandEvent) error {
-	ctx.UpdateInteractionResponse(discord.MessageUpdate{
-		Content: json.Ptr("Alrato joven."),
-	})
+	ctx.CreateMessage(discord.NewMessageCreateBuilder().
+		AddEmbeds(discord.Embed{}).
+		AddContainerComponents(
+			discord.NewActionRow(),
+			discord.NewActionRow(),
+		).
+		Build(),
+	)
 
-	return nil
 }

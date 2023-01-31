@@ -3,8 +3,10 @@ package starboard
 import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/json"
 	"github.com/rs/zerolog/log"
+	"github.com/vyrekxd/kirby/database/models"
+	"github.com/vyrekxd/kirby/langs"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var Starboard = discord.SlashCommandCreate{
@@ -166,13 +168,28 @@ var Starboard = discord.SlashCommandCreate{
 }
 
 func StarboardHandler(ctx *handler.CommandEvent) error {
-	err := ctx.DeferCreateMessage(false)
+	guildData := models.GuildConfig{}
+	err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
+	if err == mongo.ErrNoDocuments {
+		guildData = models.GuildConfig{DefaultModel: models.DefaultModel{ID: ctx.GuildID().String()}, Lang: "es-MX"}
+		err := models.GuildConfigColl().Create(&guildData)
+		if err != nil {
+			ctx.CreateMessage(discord.NewMessageCreateBuilder().
+				SetContent(*langs.Pack(guildData.Lang).Command("starboard").Getf("errCreateGuild", err)).
+				Build(),
+			)
+
+			return nil
+		}
+	}
+
+	err = ctx.DeferCreateMessage(false)
 	if err != nil {
 		log.Error().Err(err).Msgf(`Error when trying to defer message in command "%v": `, Starboard.Name)
 		return err
 	} else if ctx.SlashCommandInteractionData().SubCommandName == nil {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: json.Ptr("No se pudo obtener el subcomando."),
+			Content: langs.Pack(guildData.Lang).Command("starboard").Get("errNoSubCommand"),
 		})
 
 		return nil

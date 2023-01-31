@@ -27,15 +27,11 @@ func starboardManual(ctx *handler.CommandEvent) error {
 	starboards := []models.Starboard{}
 	err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
 	if err == mongo.ErrNoDocuments {
-		guildData = models.GuildConfig{DefaultModel: models.DefaultModel{ID: ctx.GuildID().String()}, Lang: "es-MX"}
-		err := models.GuildConfigColl().Create(&guildData)
-		if err != nil {
-			ctx.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errCreateGuild", err),
-			})
+		ctx.UpdateInteractionResponse(discord.MessageUpdate{
+			Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errNoGuildData", err),
+		})
 
-			return nil
-		}
+		return nil
 	} else {
 		err := models.StarboardColl().SimpleFind(&starboards, bson.M{"guild_id": ctx.GuildID().String()})
 		if err != nil && err != mongo.ErrNoDocuments {

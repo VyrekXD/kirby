@@ -1,11 +1,14 @@
 {
 	"notFound": "No se ha encontrado esa traduccion. (Error interno)",
 	"starboard": {
+		"errCreateGuildData": "Un error ocurrio tratando de crear los datos de tu servidor: %v",
+		"errNoSubCommand": "No se pudo obtener el subcomando.",
+
 		"manual": {
-			"errCreateGuildData": "Un error ocurrio tratando de crear los datos de tu servidor: %v",
 			"errFindGuildStarboards": "Un error ocurrio tratando de obtener las starboards de tu servidor: %v",
 			"errCreateStarboard": "Un error ocurrio tratando de guardar los datos de tu starboard: %v",
 			"errFindEmoji": "Un error ocurrio tratando de obtener el emoji de tu starboard: %v",
+			"errNoGuildData": "No se encontro los datos de tu servidor, intenta usar el comando de nuevo.",
 
 			"channelAlreadyUsed": "Ya hay una starboard en el canal ingresado.",
 			"channelInList": "El canal ya esta en la lista de la starboard `%v`, no puedes elegir canales que esten en una lista de una starboard.",
