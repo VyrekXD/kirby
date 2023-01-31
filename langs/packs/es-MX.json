@@ -4,6 +4,16 @@
 		"errCreateGuildData": "Un error ocurrio tratando de crear los datos de tu servidor: %v",
 		"errNoSubCommand": "No se pudo obtener el subcomando.",
 
+		"interactivo": {
+			"errTimeout": "No seleccionaste ningun canal intenta usar el comando de nuevo.",
+			"errNoChannel": "Puede que hayas seleccionado un canal pero yo no lo recibi, intenta de nuevo.",
+			"errCollector": "Ha ocurrido un error desconocido tratando de recibir lo que ingresaste: %v",
+
+			"placeholderSelectChannel": "Selecciona un canal.",
+
+			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard."
+		},
+
 		"manual": {
 			"errFindGuildStarboards": "Un error ocurrio tratando de obtener las starboards de tu servidor: %v",
 			"errCreateStarboard": "Un error ocurrio tratando de guardar los datos de tu starboard: %v",

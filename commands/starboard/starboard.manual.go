@@ -23,7 +23,7 @@ import (
 )
 
 func starboardManual(ctx *handler.CommandEvent) error {
-	guildData := models.GuildConfig{}
+	guildData := models.GuildConfig{Lang: "es-MX"}
 	starboards := []models.Starboard{}
 	err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
 	if err == mongo.ErrNoDocuments {
