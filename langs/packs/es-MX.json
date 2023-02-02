@@ -11,7 +11,8 @@
 
 			"placeholderSelectChannel": "Selecciona un canal.",
 
-			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard."
+			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard.",
+			"starboardData": "Datos Starboard"
 		},
 
 		"manual": {

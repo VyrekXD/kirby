@@ -56,6 +56,7 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 						Name: ctx.User().Username,
 						IconURL: *ctx.User().AvatarURL(),
 					}),
+					Title: *cmdPack.Get("starboardData"),
 					Color: constants.Colors.Main,
 					Description: *cmdPack.Get("selectChannel"),
 					Timestamp: json.Ptr(time.Now()),
