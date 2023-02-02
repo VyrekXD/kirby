@@ -2,6 +2,9 @@ package starboard
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/disgoorg/disgo/bot"
@@ -17,217 +20,180 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// var (
-// 	errTimeout = errors.New("timeout")
-// 	errNoChannel = errors.New("noChannel")
-// )
+var (
+	errTimeout = errors.New("timeout")
+	errNoChannel = errors.New("noChannel")
+)
 
 func starboardInteractivo(ctx *handler.CommandEvent) error {
-	guildData := models.GuildConfig{Lang: "es-MX"}
-	starboards := []models.Starboard{}
-	err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
-	if err == mongo.ErrNoDocuments {
-		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errNoGuildData", err),
-		})
-
-		return nil
-	} else {
-		err := models.StarboardColl().SimpleFind(&starboards, bson.M{"guild_id": ctx.GuildID().String()})
-		if err != nil && err != mongo.ErrNoDocuments {
+	go func(){
+		guildData := models.GuildConfig{Lang: "es-MX"}
+		starboards := []models.Starboard{}
+		err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
+		if err == mongo.ErrNoDocuments {
 			ctx.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errFindGuildStarboards", err),
+				Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errNoGuildData", err),
 			})
 
-			return nil
-		}
-	}
+			return
+		} else {
+			err := models.StarboardColl().SimpleFind(&starboards, bson.M{"guild_id": ctx.GuildID().String()})
+			if err != nil && err != mongo.ErrNoDocuments {
+				ctx.UpdateInteractionResponse(discord.MessageUpdate{
+					Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errFindGuildStarboards", err),
+				})
 
-	cmdPack := langs.Pack(guildData.Lang).Command("starboard").SubCommand("interactivo")
+				return
+			}
+		}
+
+		cmdPack := langs.Pack(guildData.Lang).Command("starboard").SubCommand("interactivo")
 	
-	_, err = ctx.UpdateInteractionResponse(discord.MessageUpdate{
-		Embeds: json.Ptr([]discord.Embed{
-			{
-				Author: json.Ptr(discord.EmbedAuthor{
-					Name: ctx.User().Username,
-					IconURL: *ctx.User().AvatarURL(),
-				}),
-				Color: constants.Colors.Main,
-				Description: *cmdPack.Get("selectChannel"),
-				Timestamp: json.Ptr(time.Now()),
-			},
-		}),
-		Components: json.Ptr([]discord.ContainerComponent{
-			discord.NewActionRow(
-				discord.ChannelSelectMenuComponent{
-					CustomID: "starboard:channel",
-					MaxValues: 1,
-					ChannelTypes: []discord.ComponentType{
-						discord.ComponentType(discord.ChannelTypeGuildText),
-						discord.ComponentType(discord.ChannelTypeGuildNews),
-					},
+		msg, err := ctx.UpdateInteractionResponse(discord.MessageUpdate{
+			Embeds: json.Ptr([]discord.Embed{
+				{
+					Author: json.Ptr(discord.EmbedAuthor{
+						Name: ctx.User().Username,
+						IconURL: *ctx.User().AvatarURL(),
+					}),
+					Color: constants.Colors.Main,
+					Description: *cmdPack.Get("selectChannel"),
+					Timestamp: json.Ptr(time.Now()),
 				},
-			),
-		}),
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Error ocurred when trying to respond in \"starboard:interactivo\"")
-		return nil
-	}
-
-	ch := make(chan *events.ComponentInteractionCreate)
-
-	go func() {
-		defer close(ch)
-		
-		collector, stop := bot.NewEventCollector(ctx.Client(), func(e *events.ComponentInteractionCreate) bool {
-			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel"
+			}),
+			Components: json.Ptr([]discord.ContainerComponent{
+				discord.NewActionRow(
+					discord.ChannelSelectMenuComponent{
+						CustomID: "starboard:channel",
+						MaxValues: 1,
+						ChannelTypes: []discord.ComponentType{
+							discord.ComponentType(discord.ChannelTypeGuildText),
+							discord.ComponentType(discord.ChannelTypeGuildNews),
+						},
+					},
+				),
+			}),
 		})
-		contextTimeout, stopContext := context.WithTimeout(context.Background(), 20*time.Second)
-		defer stop()
-		defer stopContext()
+		if err != nil {
+			log.Error().Err(err).Msg("Error ocurred when trying to respond in \"starboard:interactivo\"")
+			return
+		}
 
+		errCh := make(chan error)
+		ctxCh := make(chan events.ComponentInteractionCreate)
+		chanCh := make(chan discord.ResolvedChannel)
+		go GetChannel(ctx, errCh, ctxCh, chanCh)
+		err, newCtx, ch := <-errCh, <-ctxCh, <-chanCh
 
-		for {
-			select {
-			case <- contextTimeout.Done(): {
-				ch <- &events.ComponentInteractionCreate{}
+		switch err {
+			case errTimeout: {
+				ctx.Client().Rest().UpdateMessage(
+					msg.ChannelID,
+					msg.ID,
+					discord.MessageUpdate{
+						Content: cmdPack.Get("errTimeout"),
+						Embeds: json.Ptr([]discord.Embed{}),
+						Components: json.Ptr([]discord.ContainerComponent{}),
+					},
+				)
+
+				return
 			}
-			case componentEvent := <- collector: {
-				ch <- componentEvent
+			case errNoChannel: {
+				newCtx.CreateMessage(discord.MessageCreate{
+					Content: *cmdPack.Get("errNoChannel"),
+					Components: []discord.ContainerComponent{},
+				})
+
+				return
 			}
+			default: {
+				if err != nil {
+					if reflect.ValueOf(newCtx).IsZero() {
+						ctx.CreateMessage(discord.MessageCreate{
+							Content: *cmdPack.Getf("errCollector", err.Error()),
+							Components: []discord.ContainerComponent{},
+						})
+	
+						return
+					} else {
+						newCtx.CreateMessage(discord.MessageCreate{
+							Content: *cmdPack.Getf("errCollector", err.Error()),
+							Components: []discord.ContainerComponent{},
+						})
+	
+						return
+					}
+				}
 			}
 		}
+
+		newCtx.DeferUpdateMessage()
+
+		ctx.Client().Rest().UpdateMessage(
+			msg.ChannelID,
+			msg.ID,
+			discord.MessageUpdate{
+				Content: json.Ptr(fmt.Sprintf("Channel Name: %v\nInteracion ID: %v", ch.ID, newCtx.ID())),
+				Embeds: json.Ptr([]discord.Embed{}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
+			},
+		)
+
 	}()
 
-		c := <- ch
-
-	err = c.CreateMessage(discord.NewMessageCreateBuilder().
-		SetContent("new ctx").
-		Build())
-		log.Panic().Err(err).Send()
-
-		
-
 	return nil
-
-	// channel, newCtx, err := GetChannel(ctx)
-	// if err != nil && err == errTimeout {
-	// 	ctx.CreateMessage(discord.NewMessageCreateBuilder().
-	// 	SetContent(*cmdPack.Get("errTimeout")).
-	// 	Build())
-		
-	// 	return nil
-	// } else if err != nil && err == errNoChannel {
-	// 	if reflect.ValueOf(newCtx).IsZero() {
-	// 		ctx.CreateMessage(discord.NewMessageCreateBuilder().
-	// 		SetContent(*cmdPack.Get("errNoChannel")).
-	// 		Build())
-		
-	// 		return nil
-	// 	}
-		
-	// 	newCtx.CreateMessage(discord.NewMessageCreateBuilder().
-	// 	SetContent(*cmdPack.Get("errNoChannel")).
-	// 	Build())
-
-	// 	return nil
-	// } else if err != nil {
-	// 	if reflect.ValueOf(newCtx).IsZero() {
-	// 		ctx.CreateMessage(discord.NewMessageCreateBuilder().
-	// 		SetContent(*cmdPack.Getf("errCollector", err.Error())).
-	// 		Build())
-		
-	// 		return nil
-	// 	}
-		
-	// 	newCtx.CreateMessage(discord.NewMessageCreateBuilder().
-	// 	SetContent(*cmdPack.Getf("errCollector", err.Error())).
-	// 	Build())
-
-	// 	return nil
-	// }
-
-	// newCtx.CreateMessage(discord.NewMessageCreateBuilder().
-	// SetContent(fmt.Sprintf("Channel Name: %v\nInteraction ID: %v", channel.Name, newCtx.ID())).
-	// Build())
-
-	// return nil
 }
 
-// func test(ctx handler.CommandEvent, r chan events.ComponentInteractionCreate) {
-// 		defer close(r)
+func GetChannel(
+	ctx *handler.CommandEvent,
+	errCh chan error,
+	ctxCh chan events.ComponentInteractionCreate,
+	chanCh chan discord.ResolvedChannel,
+) {
+	defer close(errCh)
+	defer close(ctxCh)
+	defer close(chanCh)
 
-// 		collector, stop := bot.NewEventCollector(ctx.Client(), func(e *events.ComponentInteractionCreate) bool {
-// 			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel"
-// 		})
-// 		contextTimeout, stopContext := context.WithTimeout(context.Background(), 20*time.Second)
-// 		defer stop()
-// 		defer stopContext()
+	collector, cancel := bot.NewEventCollector(
+		ctx.Client(),
+		func(e *events.ComponentInteractionCreate) bool {
+			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" &&
+			e.User().ID == ctx.User().ID
+		},
+	)
+	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 20 * time.Second)
+	defer cancelTimeout()
 
+	for {
+		select {
+			case <- timeoutCtx.Done(): {
+				cancel()
 
-// 		for {
-// 			select {
-// 			case <- contextTimeout.Done(): {
-// 				r <- events.ComponentInteractionCreate{}
-// 				return
-// 			}
-// 			case componentEvent := <- collector: {
-// 				r <- *componentEvent
-// 				return
-// 			}
-// 			}
-// 		}
-// }
+				errCh <- errTimeout
+				ctxCh <- events.ComponentInteractionCreate{}
+				chanCh <- discord.ResolvedChannel{}
 
-// func GetChannel(ctx *handler.CommandEvent,) (discord.ResolvedChannel, events.ComponentInteractionCreate, error) {
-// 	ch := make(chan discord.ResolvedChannel)
-// 	defer close(ch)
+				return
+			}
+			case componentEvent := <- collector: {
+				cancel()
 
-// 	err := make(chan error)
-// 	defer close(err)
+				menu := componentEvent.ChannelSelectMenuInteractionData()
+				if len(menu.Channels()) <= 0 {
+					errCh <- errNoChannel
+					ctxCh <- *componentEvent
+					chanCh <- discord.ResolvedChannel{}
 
-// 	newCtx := make(chan events.ComponentInteractionCreate)
-// 	close(newCtx)
+					return
+				}
 
-// 	go func() {
-// 		eventCh, stop := bot.NewEventCollector(ctx.Client(), func(e *events.ComponentInteractionCreate) bool {
-// 			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" && e.User().ID == ctx.User().ID
-// 		})
-// 		defer stop()
+				errCh <- nil
+				ctxCh <- *componentEvent
+				chanCh <- menu.Channels()[0]
 
-// 		timeoutCtx, stopCtx := context.WithTimeout(context.Background(), 20 * time.Second)
-// 		defer stopCtx()
-
-// 		for {
-// 			select {
-// 				case <- timeoutCtx.Done(): {
-// 					ch <- discord.ResolvedChannel{}
-// 					newCtx <- events.ComponentInteractionCreate{}
-// 					err <- errTimeout
-
-// 					return
-// 				}
-// 				case compEvent := <- eventCh: {
-// 					smenu := compEvent.ChannelSelectMenuInteractionData()
-
-// 					if len(smenu.Channels()) <= 0 {
-// 						ch <- discord.ResolvedChannel{}
-// 						newCtx <- *compEvent
-// 						err <- errNoChannel
-
-// 						return
-// 					}
-
-// 					ch <- smenu.Channels()[0]
-// 					newCtx <- *compEvent
-// 					err <- bson.ErrDecodeToNil
-
-// 					return
-// 				}
-// 			}
-// 		}
-// 	}()
-
-// 	return <-ch, <-newCtx, <-err
-// }
+				return
+			}
+		}
+	}
+}
