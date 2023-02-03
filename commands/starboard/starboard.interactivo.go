@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/handler"
@@ -16,7 +18,6 @@ import (
 	"github.com/vyrekxd/kirby/constants"
 	"github.com/vyrekxd/kirby/database/models"
 	"github.com/vyrekxd/kirby/langs"
-	"github.com/vyrekxd/kirby/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,10 +25,19 @@ import (
 var (
 	errNoChannel = errors.New("noChannel")
 	errNoValidEmoji = errors.New("noValidEmoji")
+	errTimeout = errors.New("timeout")
+	errNoValidRequired = errors.New("noValidRequired")
+	errNoValidRequiredToS = errors.New("noValidRequiredToS")
 )
 
+type modalExtraData struct {
+	Required int
+	RequiredToStay int
+	Name string
+}
+
 func starboardInteractivo(ctx *handler.CommandEvent) error {
-	go func(){
+	go func(){		
 		guildData := models.GuildConfig{Lang: "es-MX"}
 		starboards := []models.Starboard{}
 		err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
@@ -81,24 +91,13 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 			return
 		}
 
-		timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 20 * time.Second)
 		errCh := make(chan error)
-		eventCh := make(chan utils.CollectedEvent[events.ComponentInteractionCreate])
-		utils.NewCollector(
-			ctx.Client(),
-			timeoutCtx,
-			func(e events.ComponentInteractionCreate) bool {
-				return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" &&
-				e.User().ID == ctx.User().ID &&
-				e.ChannelID() == ctx.ChannelID()
-			},
-			cancelTimeout,
-			eventCh,
-			errCh,
-		)
-		err, ev := <- errCh, <- eventCh
+		ctxCh := make(chan events.ComponentInteractionCreate)
+		chanCh := make(chan discord.ResolvedChannel)
+		go getChannel(ctx, errCh, ctxCh, chanCh)
+		err, newCtx, channel := <-errCh, <-ctxCh, <-chanCh
 		switch err {
-			case utils.ErrTimeout: {
+			case errTimeout: {
 				ctx.Client().Rest().UpdateMessage(
 					msg.ChannelID,
 					msg.ID,
@@ -111,10 +110,25 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 
 				return
 			}
+			case errNoChannel: {
+				newCtx.DeferUpdateMessage()
+
+				ctx.Client().Rest().UpdateMessage(
+					msg.ChannelID,
+					msg.ID,
+					discord.MessageUpdate{
+						Content: cmdPack.Get("errNoChannel"),
+						Embeds: json.Ptr([]discord.Embed{}),
+						Components: json.Ptr([]discord.ContainerComponent{}),
+					},
+				)
+
+				return
+			}
 			default: {
 				if err != nil {
-					if !reflect.ValueOf(ev.Data).IsZero() {
-						ev.Data.DeferUpdateMessage()
+					if !reflect.ValueOf(newCtx).IsZero() {
+						newCtx.DeferUpdateMessage()
 					}
 
 					ctx.Client().Rest().UpdateMessage(
@@ -132,25 +146,6 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 			}
 		}
 
-		menu := ev.Data.ChannelSelectMenuInteractionData()
-		if len(menu.Channels()) == 0 {
-			ev.Data.DeferUpdateMessage()
-
-			ctx.Client().Rest().UpdateMessage(
-				msg.ChannelID,
-				msg.ID,
-				discord.MessageUpdate{
-					Content: cmdPack.Get("errNoChannel"),
-					Embeds: json.Ptr([]discord.Embed{}),
-					Components: json.Ptr([]discord.ContainerComponent{}),
-				},
-			)
-
-			return
-		}
-
-		ev.Data.DeferUpdateMessage()
-
 		ctx.Client().Rest().UpdateMessage(
 			msg.ChannelID,
 			msg.ID,
@@ -163,22 +158,117 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 						}),
 						Title: *cmdPack.Get("starboardCreating"),
 						Color: constants.Colors.Main,
-						Description: *cmdPack.Get("selectEmoji"),
+						Description: *cmdPack.Get("selectExtraData"),
 						Timestamp: json.Ptr(time.Now()),
 						Fields: []discord.EmbedField{
 							{
 								Name: "\u0020",
-								Value: *cmdPack.Get("starboardData") + *cmdPack.Getf("starboardDataChannel", menu.Channels()[0].ID),
+								Value: *cmdPack.Get("starboardData") +
+								*cmdPack.Getf("starboardDataChannel", channel.ID),
 							},
 						},
 					},
 				}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
 			},
 		)
 
-		emoji, err := getEmoji(ctx)
+		err = newCtx.CreateModal(discord.ModalCreate{
+			CustomID: "starboard:modal",
+		})
+		if err != nil {
+			ctx.Client().Rest().UpdateMessage(
+				msg.ChannelID,
+				msg.ID,
+				discord.MessageUpdate{
+					Content: cmdPack.Get("errModal"),
+					Embeds: json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				},
+			)
+
+			return
+		}
+
+		errCh2 := make(chan error)
+		mctxCh := make(chan events.ModalSubmitInteractionCreate)
+		dataCh := make(chan modalExtraData)
+		go getExtraData(ctx, errCh, mctxCh, dataCh)
+		err, mctx, mdata := <- errCh2, <- mctxCh, <- dataCh
 		switch err {
-			case utils.ErrTimeout: {
+			case errTimeout: {
+				ctx.Client().Rest().UpdateMessage(
+					msg.ChannelID,
+					msg.ID,
+					discord.MessageUpdate{
+						Content: cmdPack.Get("errTimeout"),
+						Embeds: json.Ptr([]discord.Embed{}),
+						Components: json.Ptr([]discord.ContainerComponent{}),
+					},
+				)
+
+				return
+			}
+
+			case errNoValidRequired: {
+				mctx.DeferUpdateMessage()
+
+				ctx.Client().Rest().UpdateMessage(
+					msg.ChannelID,
+					msg.ID,
+					discord.MessageUpdate{
+						Content: cmdPack.Get("errNoValidRequired"),
+						Embeds: json.Ptr([]discord.Embed{}),
+						Components: json.Ptr([]discord.ContainerComponent{}),
+					},
+				)
+
+				return
+			}
+
+			case errNoValidRequiredToS: {
+				mctx.DeferUpdateMessage()
+
+				ctx.Client().Rest().UpdateMessage(
+					msg.ChannelID,
+					msg.ID,
+					discord.MessageUpdate{
+						Content: cmdPack.Get("errNoValidRequiredToS"),
+						Embeds: json.Ptr([]discord.Embed{}),
+						Components: json.Ptr([]discord.ContainerComponent{}),
+					},
+				)
+
+				return
+			}
+
+			default: {
+				if err != nil {
+					if !reflect.ValueOf(newCtx).IsZero() {
+						mctx.DeferUpdateMessage()
+					}
+
+					ctx.Client().Rest().UpdateMessage(
+						msg.ChannelID,
+						msg.ID,
+						discord.MessageUpdate{
+							Content: cmdPack.Get("errModal"),
+							Embeds: json.Ptr([]discord.Embed{}),
+							Components: json.Ptr([]discord.ContainerComponent{}),
+						},
+					)
+
+					return
+				}
+			}
+		}
+
+		errCh = make(chan error)
+		strCh := make(chan string)
+		go getEmoji(ctx, errCh, strCh)
+		err, emoji := <- errCh, <- strCh
+		switch err {
+			case errTimeout: {
 				ctx.Client().Rest().UpdateMessage(
 					msg.ChannelID,
 					msg.ID,
@@ -192,7 +282,7 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 				return
 			}
 			case errNoValidEmoji: {
-				ev.Data.DeferUpdateMessage()
+				newCtx.DeferUpdateMessage()
 
 				ctx.Client().Rest().UpdateMessage(
 					msg.ChannelID,
@@ -208,6 +298,10 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 			}
 			default: {
 				if err != nil {
+					if !reflect.ValueOf(newCtx).IsZero() {
+						newCtx.DeferUpdateMessage()
+					}
+
 					ctx.Client().Rest().UpdateMessage(
 						msg.ChannelID,
 						msg.ID,
@@ -223,8 +317,6 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 			}
 		}
 
-		
-
 		ctx.Client().Rest().UpdateMessage(
 			msg.ChannelID,
 			msg.ID,
@@ -237,13 +329,13 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 						}),
 						Title: *cmdPack.Get("starboardCreating"),
 						Color: constants.Colors.Main,
-						Description: *cmdPack.Get("selectEmoji"),
+						Description: *cmdPack.Get(""),
 						Timestamp: json.Ptr(time.Now()),
 						Fields: []discord.EmbedField{
 							{
 								Name: "\u0020",
 								Value: *cmdPack.Get("starboardData") + 
-								*cmdPack.Getf("starboardDataChannel", menu.Channels()[0].ID) + 
+								*cmdPack.Getf("starboardDataChannel", channel.ID) + 
 								*cmdPack.Getf("starboardDataEmoji", emoji),
 							},
 						},
@@ -256,78 +348,178 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 	return nil
 }
 
-func getEmoji(ctx *handler.CommandEvent) (string, error) {
-	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 20 * time.Second)
+func getExtraData(
+	ctx *handler.CommandEvent,
+	errCh chan error,
+	modalCtx chan events.ModalSubmitInteractionCreate,
+	dataCh chan modalExtraData,
+) {
+	defer close(errCh)
+	defer close(dataCh)
 
-	errC := make(chan error)
-	ch := make(chan utils.CollectedEvent[events.MessageCreate])
-	go utils.NewCollector(
+	collector, cancel := bot.NewEventCollector(
 		ctx.Client(),
-		timeoutCtx,
-		func(e events.MessageCreate) bool {
+		func(e *events.ModalSubmitInteractionCreate) bool {
+			return e.Data.CustomID == "starboard:modal" &&
+			e.User().ID == ctx.User().ID &&
+			e.ChannelID() == ctx.ChannelID()
+		},
+	)
+	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 30 * time.Second)
+	defer cancelTimeout()
+
+	for {
+		select {
+			case <- timeoutCtx.Done(): {
+				cancel()
+
+				errCh <- errTimeout
+				modalCtx <- events.ModalSubmitInteractionCreate{}
+				dataCh <- modalExtraData{}
+
+				return
+			}
+			case modalEvent := <- collector: {
+				cancel()
+
+
+				requiredStr := modalEvent.Data.Text("starboard:modal:required")
+				requiredToStayStr := modalEvent.Data.Text("starboard:modal:requiredtostay")
+				nameStr := modalEvent.Data.Text("starboard:modal:name")
+
+				required, err := strconv.Atoi(requiredStr)
+				if err != nil {
+					errCh <- errNoValidRequired
+					modalCtx <- events.ModalSubmitInteractionCreate{}
+					dataCh <- modalExtraData{}
+				}
+
+				requiredToStay, err := strconv.Atoi(requiredToStayStr)
+				if err != nil {
+					errCh <- errNoValidRequiredToS
+					modalCtx <- events.ModalSubmitInteractionCreate{}
+					dataCh <- modalExtraData{}
+				}
+
+				errCh <- nil
+				modalCtx <- *modalEvent
+				dataCh <- modalExtraData{
+					Required: required,
+					RequiredToStay: requiredToStay,
+					Name: nameStr,
+				}
+
+				return
+			}
+		}
+	}
+}
+
+func getEmoji(
+	ctx *handler.CommandEvent,
+	errCh chan error,
+	strCh chan string,
+) {
+	defer close(errCh)
+	defer close(strCh)
+
+	collector, cancel := bot.NewEventCollector(
+		ctx.Client(),
+		func(e *events.MessageCreate) bool {
 			return ctx.User().ID == e.Message.Author.ID &&
 			ctx.ChannelID() == e.ChannelID 
 		},
-		cancelTimeout,
-		ch,
-		errC,
 	)
-	err, ev := <- errC, <- ch
-	if err != nil {
-		return "", nil
-	}
+	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 30 * time.Second)
+	defer cancelTimeout()
 
-	emoji := ev.Data.Message.Content
-	if res := constants.DiscordEmojiRegex.FindAllString(fmt.Sprint(emoji), 2); len(res) != 0 {
-		if len(res) > 1 {
-			return "", errNoValidEmoji
+	for {
+		select {
+			case <- timeoutCtx.Done(): {
+				cancel()
+
+				errCh <- errTimeout
+				strCh <- ""
+
+				return
+			}
+			case msgEvent := <- collector: {
+				cancel()
+
+				emoji := msgEvent.Message.Content
+				if res := constants.DiscordEmojiRegex.FindAllString(fmt.Sprint(emoji), 2); len(res) != 0 {
+					if len(res) > 1 {
+						errCh <- errNoValidEmoji
+						strCh <- ""
+					}
+			
+					emoji = constants.CleanIdRegex.ReplaceAllString(
+						constants.DiscordEmojiIdRegex.FindString(fmt.Sprint(emoji)),
+						"",
+					)
+				} else if res := gomoji.FindAll(emoji); len(res) > 1 || len(res) == 0 {
+					errCh <- errNoValidEmoji
+					strCh <- ""
+				}
+
+				errCh <- nil
+				strCh <- emoji
+
+				return
+			}
 		}
-
-		emoji = constants.CleanIdRegex.ReplaceAllString(
-			constants.DiscordEmojiIdRegex.FindString(fmt.Sprint(emoji)),
-			"",
-		)
-	} else if res := gomoji.FindAll(emoji); res == nil && len(res) > 1 {
-		return "", errNoValidEmoji
-	} else {
-		return "", errNoValidEmoji
 	}
-
-	return emoji, nil
 }
 
-func getChannel(ctx *handler.CommandEvent) (events.ComponentInteractionCreate, discord.ResolvedChannel, error) {
-	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 20 * time.Second)
+func getChannel(
+	ctx *handler.CommandEvent,
+	errCh chan error,
+	ctxCh chan events.ComponentInteractionCreate,
+	chanCh chan discord.ResolvedChannel,
+) {
+	defer close(errCh)
+	defer close(ctxCh)
+	defer close(chanCh)
 
-	log.Print("it enter get channel")
-
-	errC := make(chan error)
-	ch := make(chan utils.CollectedEvent[events.ComponentInteractionCreate])
-	go utils.NewCollector(
+	collector, cancel := bot.NewEventCollector(
 		ctx.Client(),
-		timeoutCtx,
-		func(e events.ComponentInteractionCreate) bool {
-			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" 
-			// e.User().ID == ctx.User().ID &&
-			// e.ChannelID() == ctx.ChannelID()
+		func(e *events.ComponentInteractionCreate) bool {
+			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" &&
+			e.User().ID == ctx.User().ID
 		},
-		cancelTimeout,
-		ch,
-		errC,
 	)
-	err, ev := <- errC, <- ch
-	if err != nil {
-		return events.ComponentInteractionCreate{}, discord.ResolvedChannel{}, err
+	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 30 * time.Second)
+	defer cancelTimeout()
+
+	for {
+		select {
+			case <- timeoutCtx.Done(): {
+				cancel()
+
+				errCh <- errTimeout
+				ctxCh <- events.ComponentInteractionCreate{}
+				chanCh <- discord.ResolvedChannel{}
+
+				return
+			}
+			case componentEvent := <- collector: {
+				cancel()
+
+				menu := componentEvent.ChannelSelectMenuInteractionData()
+				if len(menu.Channels()) <= 0 {
+					errCh <- errNoChannel
+					ctxCh <- *componentEvent
+					chanCh <- discord.ResolvedChannel{}
+
+					return
+				}
+
+				errCh <- nil
+				ctxCh <- *componentEvent
+				chanCh <- menu.Channels()[0]
+
+				return
+			}
+		}
 	}
-
-	log.Print("it gets out of the new collector")
-
-	menu := ev.Data.ChannelSelectMenuInteractionData()
-	if len(menu.Channels()) == 0 {
-		return events.ComponentInteractionCreate{}, discord.ResolvedChannel{}, errNoChannel
-	}
-
-	log.Print("returns the channel data")
-
-	return ev.Data, menu.Channels()[0], nil
 }

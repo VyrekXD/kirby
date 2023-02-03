@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/disgoorg/disgo/gateway"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 )
@@ -11,7 +12,14 @@ import (
 var (
 	MongoUri     string
 	Token        string
-	Intents      int64 = 38409
+	Intents      gateway.ConfigOpt = gateway.WithIntents(
+		gateway.IntentGuilds,
+		gateway.IntentGuildEmojisAndStickers,
+		gateway.IntentGuildMessages,
+		gateway.IntentGuildMessageReactions,
+		gateway.IntentDirectMessages,
+		gateway.IntentMessageContent,
+	)
 	DevServersId       = []string{}
 	DevId        string
 )

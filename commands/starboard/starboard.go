@@ -183,7 +183,11 @@ func StarboardHandler(ctx *handler.CommandEvent) error {
 		}
 	}
 
-	err = ctx.DeferCreateMessage(false)
+	err = ctx.Respond(
+		discord.InteractionResponseTypeDeferredCreateMessage,
+		discord.MessageCreate{},
+	)
+
 	if err != nil {
 		log.Error().Err(err).Msgf(`Error when trying to defer message in command "%v": `, Starboard.Name)
 		return err

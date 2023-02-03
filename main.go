@@ -12,7 +12,6 @@ import (
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
-	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/snowflake/v2"
 
 	"github.com/rs/zerolog"
@@ -55,8 +54,7 @@ func main() {
 
 	client, err := disgo.New(config.Token,
 		bot.WithGatewayConfigOpts(
-			gateway.WithIntents(gateway.Intents(config.Intents)),
-			gateway.WithAutoReconnect(true),
+			config.Intents,
 		),
 		bot.WithCacheConfigOpts(
 			cache.WithCaches(cache.FlagGuilds|cache.FlagMembers|cache.FlagMessages|cache.FlagChannels|cache.FlagEmojis),

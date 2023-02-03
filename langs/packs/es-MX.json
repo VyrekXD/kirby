@@ -9,11 +9,13 @@
 			"errNoChannel": "Puede que hayas seleccionado un canal pero yo no lo recibi, intenta de nuevo.",
 			"errCollector": "Ha ocurrido un error desconocido tratando de recibir lo que ingresaste: %v",
 			"errNoValidEmoji": "Necesitas ingresar un (solo) emoji valido.",
+			"errModal": "Ha ocurrido un error tratando de crear un modal: %v",
 
 			"placeholderSelectChannel": "Selecciona un canal.",
 
 			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard.",
-			"selectEmoji": "Porfavor escribe el emoji que quisieras que fuera ",
+			"selectEmoji": "Escribe el emoji que quisieras que fuera el emoji para la starboard.",
+			"selectExtraData": "Escribe los datos necesarios que se muestran en el modal.",
 
 			"starboardCreating": "Creando Starboard",
 
