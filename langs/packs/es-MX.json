@@ -5,14 +5,21 @@
 		"errNoSubCommand": "No se pudo obtener el subcomando.",
 
 		"interactivo": {
-			"errTimeout": "No seleccionaste ningun canal intenta usar el comando de nuevo.",
+			"errTimeout": "Se acabo el tiempo... Intenta usar el comando de nuevo.",
 			"errNoChannel": "Puede que hayas seleccionado un canal pero yo no lo recibi, intenta de nuevo.",
 			"errCollector": "Ha ocurrido un error desconocido tratando de recibir lo que ingresaste: %v",
+			"errNoValidEmoji": "Necesitas ingresar un (solo) emoji valido.",
 
 			"placeholderSelectChannel": "Selecciona un canal.",
 
 			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard.",
-			"starboardData": "Datos Starboard"
+			"selectEmoji": "Porfavor escribe el emoji que quisieras que fuera ",
+
+			"starboardCreating": "Creando Starboard",
+
+			"starboardData": "> **Datos Starboard**\n",
+			"starboardDataChannel": "Canal: <#%v>\n",
+			"starboardDataEmoji": "Emoji: %v\n"
 		},
 
 		"manual": {

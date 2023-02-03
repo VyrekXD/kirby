@@ -92,8 +92,10 @@ func starboardManual(ctx *handler.CommandEvent) error {
 			return nil
 		}
 
-		emoji = fmt.Sprint(emoji)
-		emoji = constants.CleanIdRegex.ReplaceAllString(constants.DiscordEmojiIdRegex.FindString(emoji), "")
+		emoji = constants.CleanIdRegex.ReplaceAllString(
+			constants.DiscordEmojiIdRegex.FindString(fmt.Sprint(emoji)),
+			"",
+		)
 	} else if res := gomoji.FindAll(emoji); res == nil && len(res) > 1 {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: cmdPack.Get("noValidEmoji"),

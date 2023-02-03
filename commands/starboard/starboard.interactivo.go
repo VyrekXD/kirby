@@ -7,22 +7,23 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
+	"github.com/forPelevin/gomoji"
 	"github.com/rs/zerolog/log"
 	"github.com/vyrekxd/kirby/constants"
 	"github.com/vyrekxd/kirby/database/models"
 	"github.com/vyrekxd/kirby/langs"
+	"github.com/vyrekxd/kirby/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
-	errTimeout = errors.New("timeout")
 	errNoChannel = errors.New("noChannel")
+	errNoValidEmoji = errors.New("noValidEmoji")
 )
 
 func starboardInteractivo(ctx *handler.CommandEvent) error {
@@ -56,7 +57,7 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 						Name: ctx.User().Username,
 						IconURL: *ctx.User().AvatarURL(),
 					}),
-					Title: *cmdPack.Get("starboardData"),
+					Title: *cmdPack.Get("starboardCreating"),
 					Color: constants.Colors.Main,
 					Description: *cmdPack.Get("selectChannel"),
 					Timestamp: json.Ptr(time.Now()),
@@ -80,14 +81,24 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 			return
 		}
 
+		timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 20 * time.Second)
 		errCh := make(chan error)
-		ctxCh := make(chan events.ComponentInteractionCreate)
-		chanCh := make(chan discord.ResolvedChannel)
-		go GetChannel(ctx, errCh, ctxCh, chanCh)
-		err, newCtx, ch := <-errCh, <-ctxCh, <-chanCh
-
+		eventCh := make(chan utils.CollectedEvent[events.ComponentInteractionCreate])
+		utils.NewCollector(
+			ctx.Client(),
+			timeoutCtx,
+			func(e events.ComponentInteractionCreate) bool {
+				return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" &&
+				e.User().ID == ctx.User().ID &&
+				e.ChannelID() == ctx.ChannelID()
+			},
+			cancelTimeout,
+			eventCh,
+			errCh,
+		)
+		err, ev := <- errCh, <- eventCh
 		switch err {
-			case errTimeout: {
+			case utils.ErrTimeout: {
 				ctx.Client().Rest().UpdateMessage(
 					msg.ChannelID,
 					msg.ID,
@@ -100,101 +111,223 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 
 				return
 			}
-			case errNoChannel: {
-				newCtx.CreateMessage(discord.MessageCreate{
-					Content: *cmdPack.Get("errNoChannel"),
-					Components: []discord.ContainerComponent{},
-				})
-
-				return
-			}
 			default: {
 				if err != nil {
-					if reflect.ValueOf(newCtx).IsZero() {
-						ctx.CreateMessage(discord.MessageCreate{
-							Content: *cmdPack.Getf("errCollector", err.Error()),
-							Components: []discord.ContainerComponent{},
-						})
-	
-						return
-					} else {
-						newCtx.CreateMessage(discord.MessageCreate{
-							Content: *cmdPack.Getf("errCollector", err.Error()),
-							Components: []discord.ContainerComponent{},
-						})
-	
-						return
+					if !reflect.ValueOf(ev.Data).IsZero() {
+						ev.Data.DeferUpdateMessage()
 					}
+
+					ctx.Client().Rest().UpdateMessage(
+						msg.ChannelID,
+						msg.ID,
+						discord.MessageUpdate{
+							Content: cmdPack.Get("errCollector"),
+							Embeds: json.Ptr([]discord.Embed{}),
+							Components: json.Ptr([]discord.ContainerComponent{}),
+						},
+					)
+
+					return
 				}
 			}
 		}
 
-		newCtx.DeferUpdateMessage()
+		menu := ev.Data.ChannelSelectMenuInteractionData()
+		if len(menu.Channels()) == 0 {
+			ev.Data.DeferUpdateMessage()
+
+			ctx.Client().Rest().UpdateMessage(
+				msg.ChannelID,
+				msg.ID,
+				discord.MessageUpdate{
+					Content: cmdPack.Get("errNoChannel"),
+					Embeds: json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				},
+			)
+
+			return
+		}
+
+		ev.Data.DeferUpdateMessage()
 
 		ctx.Client().Rest().UpdateMessage(
 			msg.ChannelID,
 			msg.ID,
 			discord.MessageUpdate{
-				Content: json.Ptr(fmt.Sprintf("Channel Name: %v\nInteracion ID: %v", ch.ID, newCtx.ID())),
-				Embeds: json.Ptr([]discord.Embed{}),
-				Components: json.Ptr([]discord.ContainerComponent{}),
+				Embeds: json.Ptr([]discord.Embed{
+					{
+						Author: json.Ptr(discord.EmbedAuthor{
+							Name: ctx.User().Username,
+							IconURL: *ctx.User().AvatarURL(),
+						}),
+						Title: *cmdPack.Get("starboardCreating"),
+						Color: constants.Colors.Main,
+						Description: *cmdPack.Get("selectEmoji"),
+						Timestamp: json.Ptr(time.Now()),
+						Fields: []discord.EmbedField{
+							{
+								Name: "\u0020",
+								Value: *cmdPack.Get("starboardData") + *cmdPack.Getf("starboardDataChannel", menu.Channels()[0].ID),
+							},
+						},
+					},
+				}),
 			},
 		)
 
+		emoji, err := getEmoji(ctx)
+		switch err {
+			case utils.ErrTimeout: {
+				ctx.Client().Rest().UpdateMessage(
+					msg.ChannelID,
+					msg.ID,
+					discord.MessageUpdate{
+						Content: cmdPack.Get("errTimeout"),
+						Embeds: json.Ptr([]discord.Embed{}),
+						Components: json.Ptr([]discord.ContainerComponent{}),
+					},
+				)
+
+				return
+			}
+			case errNoValidEmoji: {
+				ev.Data.DeferUpdateMessage()
+
+				ctx.Client().Rest().UpdateMessage(
+					msg.ChannelID,
+					msg.ID,
+					discord.MessageUpdate{
+						Content: cmdPack.Get("errNoValidEmoji"),
+						Embeds: json.Ptr([]discord.Embed{}),
+						Components: json.Ptr([]discord.ContainerComponent{}),
+					},
+				)
+
+				return
+			}
+			default: {
+				if err != nil {
+					ctx.Client().Rest().UpdateMessage(
+						msg.ChannelID,
+						msg.ID,
+						discord.MessageUpdate{
+							Content: cmdPack.Get("errCollector"),
+							Embeds: json.Ptr([]discord.Embed{}),
+							Components: json.Ptr([]discord.ContainerComponent{}),
+						},
+					)
+
+					return
+				}
+			}
+		}
+
+		
+
+		ctx.Client().Rest().UpdateMessage(
+			msg.ChannelID,
+			msg.ID,
+			discord.MessageUpdate{
+				Embeds: json.Ptr([]discord.Embed{
+					{
+						Author: json.Ptr(discord.EmbedAuthor{
+							Name: ctx.User().Username,
+							IconURL: *ctx.User().AvatarURL(),
+						}),
+						Title: *cmdPack.Get("starboardCreating"),
+						Color: constants.Colors.Main,
+						Description: *cmdPack.Get("selectEmoji"),
+						Timestamp: json.Ptr(time.Now()),
+						Fields: []discord.EmbedField{
+							{
+								Name: "\u0020",
+								Value: *cmdPack.Get("starboardData") + 
+								*cmdPack.Getf("starboardDataChannel", menu.Channels()[0].ID) + 
+								*cmdPack.Getf("starboardDataEmoji", emoji),
+							},
+						},
+					},
+				}),
+			},
+		)
 	}()
 
 	return nil
 }
 
-func GetChannel(
-	ctx *handler.CommandEvent,
-	errCh chan error,
-	ctxCh chan events.ComponentInteractionCreate,
-	chanCh chan discord.ResolvedChannel,
-) {
-	defer close(errCh)
-	defer close(ctxCh)
-	defer close(chanCh)
-
-	collector, cancel := bot.NewEventCollector(
-		ctx.Client(),
-		func(e *events.ComponentInteractionCreate) bool {
-			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" &&
-			e.User().ID == ctx.User().ID
-		},
-	)
+func getEmoji(ctx *handler.CommandEvent) (string, error) {
 	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 20 * time.Second)
-	defer cancelTimeout()
 
-	for {
-		select {
-			case <- timeoutCtx.Done(): {
-				cancel()
-
-				errCh <- errTimeout
-				ctxCh <- events.ComponentInteractionCreate{}
-				chanCh <- discord.ResolvedChannel{}
-
-				return
-			}
-			case componentEvent := <- collector: {
-				cancel()
-
-				menu := componentEvent.ChannelSelectMenuInteractionData()
-				if len(menu.Channels()) <= 0 {
-					errCh <- errNoChannel
-					ctxCh <- *componentEvent
-					chanCh <- discord.ResolvedChannel{}
-
-					return
-				}
-
-				errCh <- nil
-				ctxCh <- *componentEvent
-				chanCh <- menu.Channels()[0]
-
-				return
-			}
-		}
+	errC := make(chan error)
+	ch := make(chan utils.CollectedEvent[events.MessageCreate])
+	go utils.NewCollector(
+		ctx.Client(),
+		timeoutCtx,
+		func(e events.MessageCreate) bool {
+			return ctx.User().ID == e.Message.Author.ID &&
+			ctx.ChannelID() == e.ChannelID 
+		},
+		cancelTimeout,
+		ch,
+		errC,
+	)
+	err, ev := <- errC, <- ch
+	if err != nil {
+		return "", nil
 	}
+
+	emoji := ev.Data.Message.Content
+	if res := constants.DiscordEmojiRegex.FindAllString(fmt.Sprint(emoji), 2); len(res) != 0 {
+		if len(res) > 1 {
+			return "", errNoValidEmoji
+		}
+
+		emoji = constants.CleanIdRegex.ReplaceAllString(
+			constants.DiscordEmojiIdRegex.FindString(fmt.Sprint(emoji)),
+			"",
+		)
+	} else if res := gomoji.FindAll(emoji); res == nil && len(res) > 1 {
+		return "", errNoValidEmoji
+	} else {
+		return "", errNoValidEmoji
+	}
+
+	return emoji, nil
+}
+
+func getChannel(ctx *handler.CommandEvent) (events.ComponentInteractionCreate, discord.ResolvedChannel, error) {
+	timeoutCtx, cancelTimeout := context.WithTimeout(context.Background(), 20 * time.Second)
+
+	log.Print("it enter get channel")
+
+	errC := make(chan error)
+	ch := make(chan utils.CollectedEvent[events.ComponentInteractionCreate])
+	go utils.NewCollector(
+		ctx.Client(),
+		timeoutCtx,
+		func(e events.ComponentInteractionCreate) bool {
+			return e.ChannelSelectMenuInteractionData().CustomID() == "starboard:channel" 
+			// e.User().ID == ctx.User().ID &&
+			// e.ChannelID() == ctx.ChannelID()
+		},
+		cancelTimeout,
+		ch,
+		errC,
+	)
+	err, ev := <- errC, <- ch
+	if err != nil {
+		return events.ComponentInteractionCreate{}, discord.ResolvedChannel{}, err
+	}
+
+	log.Print("it gets out of the new collector")
+
+	menu := ev.Data.ChannelSelectMenuInteractionData()
+	if len(menu.Channels()) == 0 {
+		return events.ComponentInteractionCreate{}, discord.ResolvedChannel{}, errNoChannel
+	}
+
+	log.Print("returns the channel data")
+
+	return ev.Data, menu.Channels()[0], nil
 }
