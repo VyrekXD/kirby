@@ -9,19 +9,36 @@
 			"errNoChannel": "Puede que hayas seleccionado un canal pero yo no lo recibi, intenta de nuevo.",
 			"errCollector": "Ha ocurrido un error desconocido tratando de recibir lo que ingresaste: %v",
 			"errNoValidEmoji": "Necesitas ingresar un (solo) emoji valido.",
-			"errModal": "Ha ocurrido un error tratando de crear un modal: %v",
+			"errNoValidNumber": "Necesitas ingresar un numero valido.",
+			"errNoValidRequired": "Las reacciones requeridas no pueden ser menores o iguales a 0.",
+			"errNoValidRequiredToS": "Las reacciones requeridas para no salir de la starboard no pueden ser menores a 0 o mayores que las requeridas.",
+			"errNoValidName": "El nombre de la starboard no puede ser mayor a 100 caracteres!",
 
 			"placeholderSelectChannel": "Selecciona un canal.",
 
 			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard.",
 			"selectEmoji": "Escribe el emoji que quisieras que fuera el emoji para la starboard.",
-			"selectExtraData": "Escribe los datos necesarios que se muestran en el modal.",
+			"selectName": "Escribe el nombre de la starboard nueva. Si no eliges el nombre, se usara el nombre del canal elegido.",
+			"selectRequired": "Escribe la cantidad de reacciones que se necesitan para que un mensaje salga en la starboard.",
+			"selectRequiredToS": "Escribe la cantidad de reacciones que se necesitan para que el mensaje **NO** salga de la starboard.",
+			"selectBotsReact": "Quieres que las reacciones de los bots cuenten para que un mensaje salga en la starboard?",
+
+			"optionalParam": "(Esta opcion es opcional, usa el boton de \"omitir\", para saltarte esta opcion)",
+
+			"useButtons": "(Usa los botones para decidir \"Si\" o \"No\")",
 
 			"starboardCreating": "Creando Starboard",
 
 			"starboardData": "> **Datos Starboard**\n",
 			"starboardDataChannel": "Canal: <#%v>\n",
-			"starboardDataEmoji": "Emoji: %v\n"
+			"starboardDataEmoji": "Emoji: %v\n",
+			"starboardDataName": "Nombre: `%v`",
+
+			"starboardRequisites": "> **Requisitos Starboard**\n",
+			"starboardRequisitesRequired": "Reacciones requeridas: **%v**\n",
+			"starboardRequisitesRequiredToS": "Reacciones requeridas para quedarse: **%v**\n",
+			"starboardRequisitesBotsReact": "Bots pueden reaccionar?: `%v`\n",
+			"starboardRequisitesBotsMsg": "Mensajes de bots cuentan?: `%v`"
 		},
 
 		"manual": {

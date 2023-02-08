@@ -12,8 +12,7 @@ import (
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
-	"github.com/disgoorg/snowflake/v2"
-
+	snowflake "github.com/disgoorg/snowflake/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -45,7 +44,7 @@ func main() {
 		return
 	}
 
-	log.Info().Msgf("Connected to MongoDB, took %v 📂", time.Since(connStart).String())
+	log.Info().Msgf("Connected to MongoDB, took %vms 📁", time.Since(connStart).Milliseconds())
 
 	err = langs.Load()
 	if err != nil {
@@ -85,12 +84,12 @@ func main() {
 	defer cancel()
 
 	if err = client.OpenGateway(ctx); err != nil {
-		log.Panic().Err(err).Msg("Error when trying to connect to gatewat: ")
+		log.Panic().Err(err).Msg("Error when trying to connect to gateway: ")
 	}
 
 	defer client.Close(context.TODO())
 
-	log.Info().Msg("Kirby is now running.  Press CTRL-C to exit.")
+	log.Info().Msg("Kirby is now running 🚀.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
