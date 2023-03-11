@@ -12,7 +12,11 @@ var (
 )
 
 func Connect() error {
-	err := mgm.SetDefaultConfig(nil, "kirby", options.Client().ApplyURI(config.MongoUri))
+	err := mgm.SetDefaultConfig(
+		nil,
+		"kirby",
+		options.Client().ApplyURI(config.MongoUri),
+	)
 
 	return err
 }

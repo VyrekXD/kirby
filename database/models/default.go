@@ -6,7 +6,7 @@ import (
 
 type DefaultModel struct {
 	ID             string `json:"id" bson:"_id,omitempty"`
-	mgm.DateFields `bson:",inline"`
+	mgm.DateFields `                 bson:",inline"`
 }
 
 func (f *DefaultModel) PrepareID(id interface{}) (interface{}, error) {

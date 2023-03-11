@@ -1,10 +1,17 @@
 {
 	"notFound": "No se ha encontrado esa traduccion. (Error interno)",
+	"yes": "Si.",
+	"no": "No.",
+
 	"starboard": {
 		"errCreateGuildData": "Un error ocurrio tratando de crear los datos de tu servidor: %v",
 		"errNoSubCommand": "No se pudo obtener el subcomando.",
+		"alreadyOnSetup": "No puedes hacer dos setups a la vez.",
 
 		"interactivo": {
+			"skip": "Omitir",
+			"terminated": "No confirmaste los datos de la starboard. El setup termino.",
+
 			"errTimeout": "Se acabo el tiempo... Intenta usar el comando de nuevo.",
 			"errNoChannel": "Puede que hayas seleccionado un canal pero yo no lo recibi, intenta de nuevo.",
 			"errCollector": "Ha ocurrido un error desconocido tratando de recibir lo que ingresaste: %v",
@@ -21,13 +28,20 @@
 			"selectName": "Escribe el nombre de la starboard nueva. Si no eliges el nombre, se usara el nombre del canal elegido.",
 			"selectRequired": "Escribe la cantidad de reacciones que se necesitan para que un mensaje salga en la starboard.",
 			"selectRequiredToS": "Escribe la cantidad de reacciones que se necesitan para que el mensaje **NO** salga de la starboard.",
-			"selectBotsReact": "Quieres que las reacciones de los bots cuenten para que un mensaje salga en la starboard?",
+			"selectBotsReact": "¿Quieres que las reacciones de los bots cuenten para que un mensaje salga en la starboard? (Por Defecto: No)",
+			"selectBotsMsg": "¿Quieres que los mensajes de los bots puedan salir en la starboard? (Por Defecto: No)",
+			"selectEmbedColor": "Elige algun color (hexadecimal) que quieras que tengan los embeds de la starboard (Por Defecto: #fe9cb1).\nPuedes usar este link: \"https://htmlcolorcodes.com/\"",
 
-			"optionalParam": "(Esta opcion es opcional, usa el boton de \"omitir\", para saltarte esta opcion)",
+			"optionalParam": " (Esta opcion es opcional, usa el boton de \"Omitir\", para saltarte esta opcion)",
 
-			"useButtons": "(Usa los botones para decidir \"Si\" o \"No\")",
+			"useButtons": " (Usa los botones para decidir \"Si\" o \"No\")",
 
 			"starboardCreating": "Creando Starboard",
+			"starboardCreated": "Starboard creada",
+
+			"starboardDesc": "La starboard ha sido creada, para configurar datos de esta o cambiar a lista blanca o añadir canales a la lista usa: `/starboard editar`",
+
+			"starboardConfirm": "Revisa la informacion de tu starboard, si esta correcta usa los botones.",
 
 			"starboardData": "> **Datos Starboard**\n",
 			"starboardDataChannel": "Canal: <#%v>\n",
@@ -67,7 +81,7 @@
 			"starboardCreated": "Starboard creada",
 			"starboardData": "> **Datos Starboard**\nNombre: `%v`\nCanal: <#%v>\nEmoji: %v",
 			"starboardRequisites": "> **Requisitos Starboard**\nReacciones requeridas: **%v**\nReacciones requeridas para quedarse: **%v**\nBots pueden reaccionar?: `%v`\nMensajes de bots cuentan?: `%v`",
-			"starboardMessages": "> **Mensajes de la Starboard**\nColor del embed: `#%v`"
+			"starboardCustom": "> **Customizacion**\nColor del embed: `#%v`"
 		}
 	}
 }

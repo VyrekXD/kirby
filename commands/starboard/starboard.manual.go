@@ -10,6 +10,7 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
 	"github.com/disgoorg/snowflake/v2"
+	"golang.org/x/exp/slices"
 
 	"github.com/forPelevin/gomoji"
 
@@ -41,6 +42,26 @@ func starboardManual(ctx *handler.CommandEvent) error {
 
 			return nil
 		}
+	}
+
+	if slices.Contains(constants.CurrentServersInSetup, ctx.GuildID().String()) {
+		ctx.UpdateInteractionResponse(discord.MessageUpdate{
+			Content: langs.Pack(guildData.Lang).Command("starboard").Get("alreadyOnSetup"),
+		})
+
+		return nil
+	} else {
+		constants.CurrentServersInSetup = append(constants.CurrentServersInSetup, ctx.GuildID().String())
+
+		defer func() {
+			i := slices.Index(constants.CurrentServersInSetup, ctx.GuildID().String())
+
+			constants.CurrentServersInSetup = slices.Delete(
+				constants.CurrentServersInSetup,
+				slices.Index(constants.CurrentServersInSetup, ctx.GuildID().String()),
+				i + 1,
+			)
+		}()
 	}
 
 	cmdPack := langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual")
@@ -165,7 +186,7 @@ func starboardManual(ctx *handler.CommandEvent) error {
 
 	parsedEmbedColor := 0
 	embedColor, ok := data.OptString("embed-color")
-	if ok && constants.HexColorRegex.FindString(embedColor) == "" {
+	if ok && (constants.HexColorRegex.FindString(embedColor) == "" || (len(embedColor) != 4 && len(embedColor) != 7)) {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: cmdPack.Get("noValidHex"),
 		})
@@ -264,6 +285,15 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		}
 	}
 
+	em, err := utils.ParseEmoji(ctx.Client(), *ctx.GuildID(), starboard.Emoji)
+	if err != nil {
+		ctx.UpdateInteractionResponse(discord.MessageUpdate{
+			Content: cmdPack.Getf("errFindEmoji", err.Error()),
+		})
+
+		return nil
+	}
+
 	err = models.StarboardColl().Create(&starboard)
 	if err != nil {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
@@ -271,13 +301,6 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		})
 
 		return nil
-	}
-
-	em, err := utils.ParseEmoji(ctx.Client(), *ctx.GuildID(), starboard.Emoji)
-	if err != nil {
-		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: cmdPack.Getf("errFindEmoji", err.Error()),
-		})
 	}
 
 	pcolor := ""
@@ -314,13 +337,15 @@ func starboardManual(ctx *handler.CommandEvent) error {
 					},
 					{
 						Name:   "\u0020",
-						Value:  *cmdPack.Getf("starboardMessages", pcolor),
+						Value:  *cmdPack.Getf("starboardCustom", pcolor),
 						Inline: json.Ptr(true),
 					},
 				},
 			},
 		}),
 	})
+
+
 
 	return nil
 }

@@ -38,7 +38,9 @@ func PingHandler(ctx *handler.CommandEvent) error {
 	msgTime := time.Now()
 	err := ctx.DeferCreateMessage(false)
 	if err != nil {
-		log.Error().Err(err).Msgf(`Error when trying to defer message in command "%v": `, Ping.Name)
+		log.Error().
+			Err(err).
+			Msgf(`Error when trying to defer message in command "%v": `, Ping.Name)
 		return err
 	}
 	msgPing := time.Since(msgTime)
@@ -46,10 +48,17 @@ func PingHandler(ctx *handler.CommandEvent) error {
 	_, client, _, err := mgm.DefaultConfigs()
 	if err != nil {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: json.Ptr(fmt.Sprintf("Un error ocurrio tratando de obtener el cliente de la db: %v", err.Error())),
+			Content: json.Ptr(
+				fmt.Sprintf(
+					"Un error ocurrio tratando de obtener el cliente de la db: %v",
+					err.Error(),
+				),
+			),
 		})
 
-		log.Error().Err(err).Msgf(`An error ocurred trying to obtain mgm defaults in command "%v": `, Ping.Name)
+		log.Error().
+			Err(err).
+			Msgf(`An error ocurred trying to obtain mgm defaults in command "%v": `, Ping.Name)
 
 		return err
 	}
@@ -58,10 +67,17 @@ func PingHandler(ctx *handler.CommandEvent) error {
 	err = client.Ping(context.Background(), nil)
 	if err != nil {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: json.Ptr(fmt.Sprintf("Un error ocurrio tratando de obtener el ping de la db: %v", err.Error())),
+			Content: json.Ptr(
+				fmt.Sprintf(
+					"Un error ocurrio tratando de obtener el ping de la db: %v",
+					err.Error(),
+				),
+			),
 		})
 
-		log.Error().Err(err).Msgf(`An error ocurred trying to obtain ping from db in command "%v": `, Ping.Name)
+		log.Error().
+			Err(err).
+			Msgf(`An error ocurred trying to obtain ping from db in command "%v": `, Ping.Name)
 
 		return err
 	}
@@ -73,10 +89,17 @@ func PingHandler(ctx *handler.CommandEvent) error {
 	_, err = ctx.Client().Rest().GetCurrentUser("")
 	if err != nil {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: json.Ptr(fmt.Sprintf("Un error ocurrio tratando de obtener el usuario de bot (@me): %v", err.Error())),
+			Content: json.Ptr(
+				fmt.Sprintf(
+					"Un error ocurrio tratando de obtener el usuario de bot (@me): %v",
+					err.Error(),
+				),
+			),
 		})
 
-		log.Error().Err(err).Msgf(`An error ocurred trying to obtain current user (@me) in command "%v": `, Ping.Name)
+		log.Error().
+			Err(err).
+			Msgf(`An error ocurred trying to obtain current user (@me) in command "%v": `, Ping.Name)
 
 		return err
 	}
@@ -94,8 +117,12 @@ func PingHandler(ctx *handler.CommandEvent) error {
 				Description: "Estos numeros son un aproximado de la latencia de las conexiones del bot.",
 				Fields: []discord.EmbedField{
 					{
-						Name:   "📤 Gateway",
-						Value:  fmt.Sprintf("%v ms (`%v`) ms", gatewayPing.Milliseconds(), emojiPing(gatewayPing.Milliseconds())),
+						Name: "📤 Gateway",
+						Value: fmt.Sprintf(
+							"%v ms (`%v`) ms",
+							gatewayPing.Milliseconds(),
+							emojiPing(gatewayPing.Milliseconds()),
+						),
 						Inline: json.Ptr(true),
 					},
 					{
@@ -104,13 +131,21 @@ func PingHandler(ctx *handler.CommandEvent) error {
 						Inline: json.Ptr(true),
 					},
 					{
-						Name:   "📡 Discord API",
-						Value:  fmt.Sprintf("%v ms (`%v`)", restPing.Milliseconds(), emojiPing(restPing.Milliseconds())),
+						Name: "📡 Discord API",
+						Value: fmt.Sprintf(
+							"%v ms (`%v`)",
+							restPing.Milliseconds(),
+							emojiPing(restPing.Milliseconds()),
+						),
 						Inline: json.Ptr(true),
 					},
 					{
-						Name:   "📨 Delay de Mensajes",
-						Value:  fmt.Sprintf("%v ms (`%v`)", msgPing.Milliseconds(), emojiPing(msgPing.Milliseconds())),
+						Name: "📨 Delay de Mensajes",
+						Value: fmt.Sprintf(
+							"%v ms (`%v`)",
+							msgPing.Milliseconds(),
+							emojiPing(msgPing.Milliseconds()),
+						),
 						Inline: json.Ptr(true),
 					},
 					{
@@ -119,8 +154,12 @@ func PingHandler(ctx *handler.CommandEvent) error {
 						Inline: json.Ptr(true),
 					},
 					{
-						Name:   "📦 Base de Datos",
-						Value:  fmt.Sprintf("%v ms (`%v`)", dbPing.Milliseconds(), emojiPing(dbPing.Milliseconds())),
+						Name: "📦 Base de Datos",
+						Value: fmt.Sprintf(
+							"%v ms (`%v`)",
+							dbPing.Milliseconds(),
+							emojiPing(dbPing.Milliseconds()),
+						),
 						Inline: json.Ptr(true),
 					},
 				},
@@ -129,7 +168,9 @@ func PingHandler(ctx *handler.CommandEvent) error {
 		),
 	})
 	if err != nil {
-		log.Error().Err(err).Msgf(`Error when trying to respond succesfull in command "%v" `, Ping.Name)
+		log.Error().
+			Err(err).
+			Msgf(`Error when trying to respond succesfull in command "%v" `, Ping.Name)
 
 		return err
 	}

@@ -48,8 +48,11 @@ var Starboard = discord.SlashCommandCreate{
 						discord.LocaleEnglishUS: "The channel of the starboard.",
 						discord.LocaleEnglishGB: "The channel of the starboard.",
 					},
-					Required:     true,
-					ChannelTypes: []discord.ChannelType{discord.ChannelTypeGuildText, discord.ChannelTypeGuildNews},
+					Required: true,
+					ChannelTypes: []discord.ChannelType{
+						discord.ChannelTypeGuildText,
+						discord.ChannelTypeGuildNews,
+					},
 				},
 				discord.ApplicationCommandOptionString{
 					Name:        "emoji",
@@ -140,10 +143,18 @@ var Starboard = discord.SlashCommandCreate{
 						discord.LocaleEnglishUS: "list-type",
 						discord.LocaleEnglishGB: "list-type",
 					},
-					// True (Blanco): Solo los mensajes en los canales de la lista podran estar en esta starboard. False (Negro): Solo mensajes que no esten en estos canales podran estar en esta starboard. Solo UN canal puede estar en la lista tipo false (negro).
+					// True (Blanco): Solo los mensajes en los canales de la
+					// lista podran estar en esta starboard. False (Negro): Solo
+					// mensajes que no esten en estos canales podran estar en
+					// esta starboard. Solo UN canal puede estar en la lista
+					// tipo false (negro).
 					Description: "El tipo de lista. Usa el comando \"/infolista\" para mas informacion de las listas.",
 					DescriptionLocalizations: map[discord.Locale]string{
-						// True (White): Only messages from the channels in the list can be on the starboard. False (Black): Only messages that are NOT in the channel list can be on the starboard. Only ONE channel can be on list type false (black).
+						// True (White): Only messages from the channels in the
+						// list can be on the starboard. False (Black): Only
+						// messages that are NOT in the channel list can be on
+						// the starboard. Only ONE channel can be on list type
+						// false (black).
 						discord.LocaleEnglishUS: "The list type. Use the command \"/listinfo\" for more information about lists.",
 						discord.LocaleEnglishGB: "The list type. Use the command \"/listinfo\" for more information about lists.",
 					},
@@ -171,7 +182,10 @@ func StarboardHandler(ctx *handler.CommandEvent) error {
 	guildData := models.GuildConfig{}
 	err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
 	if err == mongo.ErrNoDocuments {
-		guildData = models.GuildConfig{DefaultModel: models.DefaultModel{ID: ctx.GuildID().String()}, Lang: "es-MX"}
+		guildData = models.GuildConfig{
+			DefaultModel: models.DefaultModel{ID: ctx.GuildID().String()},
+			Lang:         "es-MX",
+		}
 		err := models.GuildConfigColl().Create(&guildData)
 		if err != nil {
 			ctx.CreateMessage(discord.NewMessageCreateBuilder().
@@ -189,7 +203,9 @@ func StarboardHandler(ctx *handler.CommandEvent) error {
 	)
 
 	if err != nil {
-		log.Error().Err(err).Msgf(`Error when trying to defer message in command "%v": `, Starboard.Name)
+		log.Error().
+			Err(err).
+			Msgf(`Error when trying to defer message in command "%v": `, Starboard.Name)
 		return err
 	} else if ctx.SlashCommandInteractionData().SubCommandName == nil {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{

@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	MongoUri     string
-	Token        string
-	Intents      gateway.ConfigOpt = gateway.WithIntents(
+	MongoUri string
+	Token    string
+	Intents  gateway.ConfigOpt = gateway.WithIntents(
 		gateway.IntentGuilds,
 		gateway.IntentGuildEmojisAndStickers,
 		gateway.IntentGuildMessages,
@@ -20,7 +20,7 @@ var (
 		gateway.IntentDirectMessages,
 		gateway.IntentMessageContent,
 	)
-	DevServersId       = []string{}
+	DevServersId = []string{}
 	DevId        string
 )
 

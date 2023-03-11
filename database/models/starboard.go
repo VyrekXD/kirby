@@ -17,12 +17,12 @@ type Starboard struct {
 	Emoji string `json:"emoji" bson:"emoji"`
 
 	// Required to appear on starboard
-	Required int `json:"required" bson:"required"`
+	Required int `json:"required"         bson:"required"`
 	// Required to stay on the starboard
 	RequiredToStay int `json:"required_to_stay" bson:"required_to_stay"`
 
 	// Can bots reactions count to a message appear in the starboard
-	BotsReact bool `json:"bots_react" bson:"bots_react"`
+	BotsReact bool `json:"bots_react"    bson:"bots_react"`
 	// Can bot messages be on the starboard
 	BotsMessages bool `json:"bots_messages" bson:"bots_messages"`
 
@@ -32,13 +32,14 @@ type Starboard struct {
 	// Levels of emojis in the starboard
 	Levels Levels `json:"levels,omitempty" bson:"levels,omitempty"`
 
-	// Works as a black/white list. NOTE: Everytime the list changes its type the array is cleaned
-	// False counts as a "blacklist", NOTE: The server cant have more than one blacklist starboard.
+	// Works as a black/white list. NOTE: Everytime the list changes its type
+	// the array is cleaned False counts as a "blacklist", NOTE: The server cant
+	// have more than one blacklist starboard.
 	// - Starboard will be global and will ignore the channels on the list
 	// True counts as a "whitelisDefaultModel
 	// - Starboard will only detect channels on the list.
 	ChannelListType bool     `json:"channel_list_type" bson:"channel_list_type"`
-	ChannelList     []string `json:"channel_list" bson:"channel_list"`
+	ChannelList     []string `json:"channel_list"      bson:"channel_list"`
 }
 
 type Levels struct {
@@ -46,10 +47,10 @@ type Levels struct {
 	FirstEmoji string `json:"first_emoji,omitempty" bson:"first_emoji,omitempty"`
 
 	// NOTE: If required changes
-	Second      int    `json:"second,omitempty" bson:"second,omitempty"`
+	Second      int    `json:"second,omitempty"       bson:"second,omitempty"`
 	SecondEmoji string `json:"second_emoji,omitempty" bson:"second_emoji,omitempty"`
 
-	Third      int    `json:"third,omitempty" bson:"third,omitempty"`
+	Third      int    `json:"third,omitempty"       bson:"third,omitempty"`
 	ThirdEmoji string `json:"third_emoji,omitempty" bson:"third_emoji,omitempty"`
 }
 

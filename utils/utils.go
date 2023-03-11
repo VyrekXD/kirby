@@ -6,7 +6,11 @@ import (
 	"github.com/forPelevin/gomoji"
 )
 
-func ReadableResult(r *interface{}, nonNilValue string, nilValue string) string {
+func ReadableResult(
+	r *interface{},
+	nonNilValue string,
+	nilValue string,
+) string {
 	if *r == nil {
 		return nilValue
 	} else {
@@ -22,7 +26,11 @@ func ReadableBool(b *bool, trueValue string, falseValue string) string {
 	}
 }
 
-func ParseEmoji(s bot.Client, guildId snowflake.ID, emoji string) (string, error) {
+func ParseEmoji(
+	s bot.Client,
+	guildId snowflake.ID,
+	emoji string,
+) (string, error) {
 	if res := gomoji.FindAll(emoji); res != nil {
 		return emoji, nil
 	} else {

@@ -31,7 +31,9 @@ func Ready(c bot.Client) bot.EventListener {
 			gateway.WithWatchingActivity(presence),
 			gateway.WithOnlineStatus(discord.OnlineStatusIdle),
 		); err != nil {
-			log.Panic().Err(err).Msgf("An error ocurred trying to set presence: ")
+			log.Panic().
+				Err(err).
+				Msgf("An error ocurred trying to set presence: ")
 		}
 
 		scheduler.Every("3m").Do(func() {
@@ -42,7 +44,9 @@ func Ready(c bot.Client) bot.EventListener {
 				gateway.WithWatchingActivity(presence),
 				gateway.WithOnlineStatus(discord.OnlineStatusIdle),
 			); err != nil {
-				log.Panic().Err(err).Msgf("An error ocurred trying to set presence: ")
+				log.Panic().
+					Err(err).
+					Msgf("An error ocurred trying to set presence: ")
 			}
 		})
 	})

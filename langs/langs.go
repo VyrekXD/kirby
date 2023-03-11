@@ -51,6 +51,15 @@ func (p *LangPack) Command(c string) *CommandPack {
 	return &CommandPack{langPack: *p, commmands: []string{c}}
 }
 
+func (p *LangPack) GetGlobal(k string) *string {
+	t, ok := p._container.S(k).Data().(string)
+	if !ok {
+		return &p.NotFoundText
+	}
+
+	return &t
+}
+
 func Pack(c string) *LangPack {
 	pack := _packs[c]
 	if pack == nil {
@@ -75,12 +84,20 @@ func Load() error {
 	for _, file := range files {
 		data, err := os.ReadFile("./langs/packs/" + file.Name())
 		if err != nil {
-			return fmt.Errorf(`error loading lang pack "%v": %v`, file.Name(), err)
+			return fmt.Errorf(
+				`error loading lang pack "%v": %v`,
+				file.Name(),
+				err,
+			)
 		}
 
 		parsed, err := gabs.ParseJSON(data)
 		if err != nil {
-			return fmt.Errorf(`error parsing lang pack "%v" json: %v`, file.Name(), err)
+			return fmt.Errorf(
+				`error parsing lang pack "%v" json: %v`,
+				file.Name(),
+				err,
+			)
 		}
 
 		_packs[strings.Replace(file.Name(), ".json", "", 1)] = parsed
