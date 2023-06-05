@@ -16,14 +16,16 @@ func defaultContext() (context.Context, context.CancelFunc) {
 	)
 }
 
-func skipButton(ctx events.ComponentInteractionCreate) (<-chan *events.ComponentInteractionCreate, func()) {
+func skipButton(
+	ctx events.ComponentInteractionCreate,
+) (<-chan *events.ComponentInteractionCreate, func()) {
 	return bot.NewEventCollector(
 		ctx.Client(),
 		func(e *events.ComponentInteractionCreate) bool {
 			return e.Type() == discord.ComponentTypeButton &&
 				e.ButtonInteractionData().CustomID() == collSkipId &&
 				ctx.User().ID == e.Message.Author.ID &&
-				ctx.ChannelID() == e.ChannelID()
+				ctx.Channel().ID() == e.ChannelID()
 		},
 	)
 }

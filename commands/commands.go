@@ -20,8 +20,8 @@ var (
 func HandleCommands(_ bot.Client) handler.Router {
 	h := handler.New()
 
-	h.HandleCommand("/"+information.Ping.Name, information.PingHandler)
-	h.HandleCommand("/"+starboard.Starboard.Name, starboard.StarboardHandler)
+	h.Command("/"+information.Ping.Name, information.PingHandler)
+	h.Command("/"+starboard.Starboard.Name, starboard.StarboardHandler)
 
 	return h
 }

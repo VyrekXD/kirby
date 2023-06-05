@@ -87,10 +87,12 @@ func GetChannel(
 	errCh := make(chan error)
 	ctxCh := make(chan events.ComponentInteractionCreate)
 	chanCh := make(chan discord.ResolvedChannel)
+
 	log.Print("before getchannelch")
 	go getChannelCh(ctx, errCh, ctxCh, chanCh)
 	err, newCtx, channel := <-errCh, <-ctxCh, <-chanCh
 	log.Print("got values")
+
 	switch err {
 	case errTimeout:
 		{
@@ -150,7 +152,7 @@ func GetChannel(
 	}
 
 	return newCtx, channel, nil
-} 
+}
 
 func getEmojiCh(
 	ctx events.ComponentInteractionCreate,
@@ -689,8 +691,8 @@ func getColorCh(
 
 				var parsedEmbedColor int
 
-				if( len(msgEvent.Message.Content) != 4 && len(msgEvent.Message.Content) != 7) ||
-				constants.HexColorRegex.FindString(msgEvent.Message.Content) == "" {
+				if (len(msgEvent.Message.Content) != 4 && len(msgEvent.Message.Content) != 7) ||
+					constants.HexColorRegex.FindString(msgEvent.Message.Content) == "" {
 					errCh <- errNoValidHex
 					numCh <- 0
 				} else if len(msgEvent.Message.Content) == 4 {
@@ -699,23 +701,23 @@ func getColorCh(
 					for _, d := range strings.Split(strings.ToLower(strings.Replace(msgEvent.Message.Content, "#", "", 1)), "") {
 						fembedColor += strings.Repeat(d, 2)
 					}
-			
+
 					parsedInt, err := strconv.ParseInt(fembedColor, 16, 64)
 					if err != nil {
 						errCh <- errNoValidParsedHex
 						numCh <- 0
-			
+
 						return
 					}
-			
+
 					parsedEmbedColor = int(parsedInt)
 				} else {
 					parsedInt, err := strconv.ParseInt(strings.ToLower(strings.Replace(msgEvent.Message.Content, "#", "", 1)), 16, 64)
 					if err != nil {
 						errCh <- errNoValidParsedHex
 						numCh <- 0
-			
-						return 
+
+						return
 					}
 
 					parsedEmbedColor = int(parsedInt)
@@ -765,32 +767,40 @@ func GetColor(
 
 			return 0, errResolved
 		}
-	case errNoValidHex: {
-		ctx.Client().Rest().UpdateMessage(
-			msg.ChannelID,
-			msg.ID,
-			discord.MessageUpdate{
-				Content:    langs.Pack(guildLang).Command("starboard").SubCommand("manual").Get("noValidHex"),
-				Embeds:     json.Ptr([]discord.Embed{}),
-				Components: json.Ptr([]discord.ContainerComponent{}),
-			},
-		)
+	case errNoValidHex:
+		{
+			ctx.Client().Rest().UpdateMessage(
+				msg.ChannelID,
+				msg.ID,
+				discord.MessageUpdate{
+					Content: langs.Pack(guildLang).
+						Command("starboard").
+						SubCommand("manual").
+						Get("noValidHex"),
+					Embeds:     json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				},
+			)
 
-		return 0, errResolved
-	}
-	case errNoValidHex: {
-		ctx.Client().Rest().UpdateMessage(
-			msg.ChannelID,
-			msg.ID,
-			discord.MessageUpdate{
-				Content:    langs.Pack(guildLang).Command("starboard").SubCommand("manual").Get("noValidParsedHex"),
-				Embeds:     json.Ptr([]discord.Embed{}),
-				Components: json.Ptr([]discord.ContainerComponent{}),
-			},
-		)
+			return 0, errResolved
+		}
+	case errNoValidHex:
+		{
+			ctx.Client().Rest().UpdateMessage(
+				msg.ChannelID,
+				msg.ID,
+				discord.MessageUpdate{
+					Content: langs.Pack(guildLang).
+						Command("starboard").
+						SubCommand("manual").
+						Get("noValidParsedHex"),
+					Embeds:     json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				},
+			)
 
-		return 0, errResolved
-	}
+			return 0, errResolved
+		}
 	default:
 		{
 			if err != nil {

@@ -46,22 +46,27 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 			}
 		}
 
-		if slices.Contains(constants.CurrentServersInSetup, ctx.GuildID().String()) {
+		if slices.Contains(
+			constants.CurrentServersInSetup,
+			ctx.GuildID().String(),
+		) {
 			ctx.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: langs.Pack(guildData.Lang).Command("starboard").Get("alreadyOnSetup"),
+				Content: langs.Pack(guildData.Lang).
+					Command("starboard").
+					Get("alreadyOnSetup"),
 			})
-	
+
 			return
 		} else {
 			constants.CurrentServersInSetup = append(constants.CurrentServersInSetup, ctx.GuildID().String())
-	
+
 			defer func() {
 				i := slices.Index(constants.CurrentServersInSetup, ctx.GuildID().String())
-	
+
 				constants.CurrentServersInSetup = slices.Delete(
 					constants.CurrentServersInSetup,
 					slices.Index(constants.CurrentServersInSetup, ctx.GuildID().String()),
-					i + 1,
+					i+1,
 				)
 			}()
 		}
@@ -146,7 +151,7 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 		if err != nil {
 			return
 		}
-		
+
 		ctx.Client().Rest().UpdateMessage(
 			msg.ChannelID,
 			msg.ID,
@@ -174,7 +179,10 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 				}),
 				Components: json.Ptr([]discord.ContainerComponent{
 					discord.NewActionRow(
-						discord.NewSecondaryButton(*cmdPack.Get("skip"), "starboard:skip"),
+						discord.NewSecondaryButton(
+							*cmdPack.Get("skip"),
+							"starboard:skip",
+						),
 					),
 				}),
 			},
@@ -317,9 +325,18 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 				}),
 				Components: json.Ptr([]discord.ContainerComponent{
 					discord.NewActionRow(
-						discord.NewPrimaryButton(*langs.Pack(guildData.Lang).GetGlobal("yes"), "starboard:yes"),
-						discord.NewPrimaryButton(*langs.Pack(guildData.Lang).GetGlobal("no"), "starboard:no"),
-						discord.NewSecondaryButton(*cmdPack.Get("skip"), "starboard:skip"),
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("yes"),
+							"starboard:yes",
+						),
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("no"),
+							"starboard:no",
+						),
+						discord.NewSecondaryButton(
+							*cmdPack.Get("skip"),
+							"starboard:skip",
+						),
 					),
 				}),
 			},
@@ -328,7 +345,7 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 		botsReact, err := cmd_util.GetBool(newCtx, msg, cmdPack)
 		if err != nil {
 			return
-		} 
+		}
 
 		ctx.Client().Rest().UpdateMessage(
 			msg.ChannelID,
@@ -366,9 +383,18 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 				}),
 				Components: json.Ptr([]discord.ContainerComponent{
 					discord.NewActionRow(
-						discord.NewPrimaryButton(*langs.Pack(guildData.Lang).GetGlobal("yes"), "starboard:yes"),
-						discord.NewPrimaryButton(*langs.Pack(guildData.Lang).GetGlobal("no"), "starboard:no"),
-						discord.NewSecondaryButton(*cmdPack.Get("skip"), "starboard:skip"),
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("yes"),
+							"starboard:yes",
+						),
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("no"),
+							"starboard:no",
+						),
+						discord.NewSecondaryButton(
+							*cmdPack.Get("skip"),
+							"starboard:skip",
+						),
 					),
 				}),
 			},
@@ -377,7 +403,7 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 		botsMsg, err := cmd_util.GetBool(newCtx, msg, cmdPack)
 		if err != nil {
 			return
-		} 
+		}
 
 		ctx.Client().Rest().UpdateMessage(
 			msg.ChannelID,
@@ -392,7 +418,7 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 						Title: *cmdPack.Get("starboardCreating"),
 						Color: constants.Colors.Main,
 						Description: *cmdPack.Get("selectEmbedColor") +
-						*cmdPack.Get("optionalParam"),
+							*cmdPack.Get("optionalParam"),
 						Timestamp: json.Ptr(time.Now()),
 						Fields: []discord.EmbedField{
 							{
@@ -416,11 +442,16 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 				Components: json.Ptr([]discord.ContainerComponent{}),
 			},
 		)
-	
-		embedColor, err := cmd_util.GetColor(newCtx, msg, cmdPack, guildData.Lang)
+
+		embedColor, err := cmd_util.GetColor(
+			newCtx,
+			msg,
+			cmdPack,
+			guildData.Lang,
+		)
 		if err != nil {
 			return
-		} 
+		}
 
 		ctx.Client().Rest().UpdateMessage(
 			msg.ChannelID,
@@ -432,10 +463,10 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 							Name:    ctx.User().Username,
 							IconURL: *ctx.User().AvatarURL(),
 						}),
-						Title: *cmdPack.Get("starboardCreating"),
-						Color: constants.Colors.Main,
+						Title:       *cmdPack.Get("starboardCreating"),
+						Color:       constants.Colors.Main,
 						Description: *cmdPack.Get("starboardConfirm"),
-						Timestamp: json.Ptr(time.Now()),
+						Timestamp:   json.Ptr(time.Now()),
 						Fields: []discord.EmbedField{
 							{
 								Name: "\u0020",
@@ -467,8 +498,14 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 				}),
 				Components: json.Ptr([]discord.ContainerComponent{
 					discord.NewActionRow(
-						discord.NewPrimaryButton(*langs.Pack(guildData.Lang).GetGlobal("yes"), "starboard:yes"),
-						discord.NewPrimaryButton(*langs.Pack(guildData.Lang).GetGlobal("no"), "starboard:no"),
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("yes"),
+							"starboard:yes",
+						),
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("no"),
+							"starboard:no",
+						),
 					),
 				}),
 			},
@@ -507,12 +544,16 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 			starboard.EmbedColor = embedColor
 		}
 
-		em, err := utils.ParseEmoji(ctx.Client(), *ctx.GuildID(), starboard.Emoji)
+		em, err := utils.ParseEmoji(
+			ctx.Client(),
+			*ctx.GuildID(),
+			starboard.Emoji,
+		)
 		if err != nil {
 			ctx.UpdateInteractionResponse(discord.MessageUpdate{
 				Content: cmdPack.Getf("errFindEmoji", err.Error()),
 			})
-	
+
 			return
 		}
 
@@ -522,13 +563,13 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 		} else {
 			pcolor = strconv.FormatInt(int64(constants.Colors.Main), 16)
 		}
-	
+
 		err = models.StarboardColl().Create(&starboard)
 		if err != nil {
 			ctx.UpdateInteractionResponse(discord.MessageUpdate{
 				Content: cmdPack.Getf("errCreateStarboard", err.Error()),
 			})
-	
+
 			return
 		}
 
@@ -542,10 +583,10 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 							Name:    ctx.User().Username,
 							IconURL: *ctx.User().AvatarURL(),
 						}),
-						Title: *cmdPack.Get("starboardCreated"),
-						Color: constants.Colors.Main,
+						Title:       *cmdPack.Get("starboardCreated"),
+						Color:       constants.Colors.Main,
 						Description: *cmdPack.Get("starboardDesc"),
-						Timestamp: json.Ptr(time.Now()),
+						Timestamp:   json.Ptr(time.Now()),
 						Fields: []discord.EmbedField{
 							{
 								Name: "\u0020",
@@ -575,12 +616,11 @@ func starboardInteractivo(ctx *handler.CommandEvent) error {
 						},
 					},
 				}),
-				Components: json.Ptr([]discord.ContainerComponent{
-				}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
 			},
 		)
 
-		}()
+	}()
 
 	return nil
 }

@@ -29,7 +29,10 @@ func starboardManual(ctx *handler.CommandEvent) error {
 	err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
 	if err == mongo.ErrNoDocuments {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errNoGuildData", err),
+			Content: langs.Pack(guildData.Lang).
+				Command("starboard").
+				SubCommand("manual").
+				Getf("errNoGuildData", err),
 		})
 
 		return nil
@@ -44,9 +47,14 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		}
 	}
 
-	if slices.Contains(constants.CurrentServersInSetup, ctx.GuildID().String()) {
+	if slices.Contains(
+		constants.CurrentServersInSetup,
+		ctx.GuildID().String(),
+	) {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: langs.Pack(guildData.Lang).Command("starboard").Get("alreadyOnSetup"),
+			Content: langs.Pack(guildData.Lang).
+				Command("starboard").
+				Get("alreadyOnSetup"),
 		})
 
 		return nil
@@ -59,12 +67,14 @@ func starboardManual(ctx *handler.CommandEvent) error {
 			constants.CurrentServersInSetup = slices.Delete(
 				constants.CurrentServersInSetup,
 				slices.Index(constants.CurrentServersInSetup, ctx.GuildID().String()),
-				i + 1,
+				i+1,
 			)
 		}()
 	}
 
-	cmdPack := langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual")
+	cmdPack := langs.Pack(guildData.Lang).
+		Command("starboard").
+		SubCommand("manual")
 
 	data := ctx.SlashCommandInteractionData()
 	channel, ok := data.OptChannel("canal")
@@ -125,7 +135,8 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		return nil
 	}
 
-	if r := models.StarboardColl().FindOne(context.TODO(), bson.M{"emoji": emoji, "guild_id": ctx.GuildID().String()}); r.Err() != nil && r.Err() != mongo.ErrNoDocuments {
+	if r := models.StarboardColl().FindOne(context.TODO(), bson.M{"emoji": emoji, "guild_id": ctx.GuildID().String()}); r.Err() != nil &&
+		r.Err() != mongo.ErrNoDocuments {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: cmdPack.Get("noUniqueEmoji"),
 		})
@@ -186,7 +197,8 @@ func starboardManual(ctx *handler.CommandEvent) error {
 
 	parsedEmbedColor := 0
 	embedColor, ok := data.OptString("embed-color")
-	if ok && (constants.HexColorRegex.FindString(embedColor) == "" || (len(embedColor) != 4 && len(embedColor) != 7)) {
+	if ok &&
+		(constants.HexColorRegex.FindString(embedColor) == "" || (len(embedColor) != 4 && len(embedColor) != 7)) {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: cmdPack.Get("noValidHex"),
 		})
@@ -281,7 +293,10 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		starboard.ChannelList = []string{}
 
 		for _, c := range listChannels {
-			starboard.ChannelList = append(starboard.ChannelList, (*c).ID().String())
+			starboard.ChannelList = append(
+				starboard.ChannelList,
+				(*c).ID().String(),
+			)
 		}
 	}
 
@@ -344,8 +359,6 @@ func starboardManual(ctx *handler.CommandEvent) error {
 			},
 		}),
 	})
-
-
 
 	return nil
 }

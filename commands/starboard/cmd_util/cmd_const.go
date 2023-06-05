@@ -3,7 +3,7 @@ package cmd_util
 import "errors"
 
 var (
-	errResolved = errors.New("resolved")
+	errResolved         = errors.New("resolved")
 	errNoChannel        = errors.New("noChannel")
 	errNoValidEmoji     = errors.New("noValidEmoji")
 	errTimeout          = errors.New("timeout")
@@ -14,9 +14,9 @@ var (
 )
 
 var (
-	collBaseId = "starboard:"
+	collBaseId    = "starboard:"
 	collChannelId = collBaseId + "channel"
-	collSkipId = collBaseId + "skip"
-	collYesId = collBaseId + "yes"
-	collNoId = collBaseId + "no"
+	collSkipId    = collBaseId + "skip"
+	collYesId     = collBaseId + "yes"
+	collNoId      = collBaseId + "no"
 )
