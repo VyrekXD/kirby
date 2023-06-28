@@ -43,9 +43,7 @@ func SelectChannel(e *handler.ComponentEvent) error {
 
 	starboards := []models.Starboard{}
 	err = models.StarboardColl().
-		SimpleFind(&starboards, models.Starboard{
-			GuildId: e.GuildID().String(),
-		})
+		SimpleFind(&starboards, bson.M{"guild_id": e.GuildID().String()})
 	if err != nil && err != mongo.ErrNoDocuments {
 		e.UpdateMessage(discord.MessageUpdate{
 			Content: langs.Pack(guildData.Lang).
