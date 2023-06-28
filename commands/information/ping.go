@@ -176,5 +176,4 @@ func PingHandler(ctx *handler.CommandEvent) error {
 	}
 
 	return nil
-
 }

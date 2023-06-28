@@ -17,9 +17,7 @@ type Starboard struct {
 	Emoji string `json:"emoji" bson:"emoji"`
 
 	// Required to appear on starboard
-	Required int `json:"required"         bson:"required"`
-	// Required to stay on the starboard
-	RequiredToStay int `json:"required_to_stay" bson:"required_to_stay"`
+	Required int `json:"required" bson:"required"`
 
 	// Can bots reactions count to a message appear in the starboard
 	BotsReact bool `json:"bots_react"    bson:"bots_react"`

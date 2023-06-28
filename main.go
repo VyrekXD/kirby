@@ -32,19 +32,20 @@ func init() {
 				i = "log"
 			}
 
-			return strings.ToUpper(fmt.Sprintf("| %v |", strings.ToUpper(fmt.Sprint(i))))
+			return strings.ToUpper(
+				fmt.Sprintf("| %v |", strings.ToUpper(fmt.Sprint(i))),
+			)
 		},
 	})
 }
 
 func main() {
-	connStart := time.Now()
 	err := database.Connect()
 	if err != nil {
 		return
 	}
 
-	log.Info().Msgf("Connected to MongoDB, took %vms 📁", time.Since(connStart).Milliseconds())
+	log.Info().Msg("Connected to MongoDB 📁")
 
 	err = langs.Load()
 	if err != nil {
@@ -56,7 +57,9 @@ func main() {
 			config.Intents,
 		),
 		bot.WithCacheConfigOpts(
-			cache.WithCaches(cache.FlagGuilds|cache.FlagMembers|cache.FlagMessages|cache.FlagChannels|cache.FlagEmojis),
+			cache.WithCaches(
+				cache.FlagGuilds|cache.FlagMembers|cache.FlagMessages|cache.FlagChannels|cache.FlagEmojis,
+			),
 		),
 	)
 	if err != nil {
@@ -68,9 +71,12 @@ func main() {
 
 	if os.Getenv("APP_ENV") == "development" {
 		for _, id := range config.DevServersId {
-			_, err := client.Rest().SetGuildCommands(client.ApplicationID(), snowflake.MustParse(id), commands.CommandsData)
+			_, err := client.Rest().
+				SetGuildCommands(client.ApplicationID(), snowflake.MustParse(id), commands.CommandsData)
 			if err != nil {
-				log.Panic().Err(err).Msg("Error when creating commands (development mode): ")
+				log.Panic().
+					Err(err).
+					Msg("Error when creating commands (development mode): ")
 			}
 		}
 	} else {

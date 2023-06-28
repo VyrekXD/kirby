@@ -1,10 +1,20 @@
 package utils
 
 import (
+	"time"
+
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/forPelevin/gomoji"
 )
+
+func WaitDo(timeout time.Duration, do func()) {
+	go func() {
+		time.Sleep(timeout)
+
+		do()
+	}()
+}
 
 func ReadableResult(
 	r *interface{},

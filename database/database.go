@@ -7,9 +7,7 @@ import (
 	"github.com/vyrekxd/kirby/config"
 )
 
-var (
-	db *mgm.Config
-)
+var db *mgm.Config
 
 func Connect() error {
 	err := mgm.SetDefaultConfig(

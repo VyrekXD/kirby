@@ -13,23 +13,36 @@
 			"terminated": "No confirmaste los datos de la starboard. El setup termino.",
 
 			"errTimeout": "Se acabo el tiempo... Intenta usar el comando de nuevo.",
+			"errNoValidPhase": "No se pudo obtener la fase actual del setup.",
 			"errNoChannel": "Puede que hayas seleccionado un canal pero yo no lo recibi, intenta de nuevo.",
-			"errCollector": "Ha ocurrido un error desconocido tratando de recibir lo que ingresaste: %v",
+			"errUnexpected": "Ha ocurrido un error desconocido: %v",
 			"errNoValidEmoji": "Necesitas ingresar un (solo) emoji valido.",
 			"errNoValidNumber": "Necesitas ingresar un numero valido.",
 			"errNoValidRequired": "Las reacciones requeridas no pueden ser menores o iguales a 0.",
-			"errNoValidRequiredToS": "Las reacciones requeridas para no salir de la starboard no pueden ser menores a 0 o mayores que las requeridas.",
-			"errNoValidName": "El nombre de la starboard no puede ser mayor a 100 caracteres!",
+			"errNoValidName": "El nombre de la starboard no puede ser mayor a 25 caracteres!",
+			"errCantUpdate": "No se pudo actualizar los datos de la starboard: %v",
 
 			"placeholderSelectChannel": "Selecciona un canal.",
 
-			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard.",
+			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard. (Si no aparece el canal que deseas aqui, usa el comando /starboard manual)",
+			"selectBotsReact": "¿Quieres que las reacciones de los bots cuenten para que un mensaje salga en la starboard? (Por Defecto: No, puedes omitir esta opcion usando el boton)",
+			"selectBotsMsg": "¿Quieres que los mensajes de los bots puedan salir en la starboard? (Por Defecto: No, puedes omitir esta opcion usando el boton)",
+
+			"respondModal": "Responde los datos de el modal",
+
+			"labelName": "Nombre de la starboard",
+			"labelRequired": "Cantidad requerida",
+
+			"labelOptional": " (Opcional)",
+
+			"placeholderName": "Este nombre sera usado para distinguir la starboard.",
+			"placeholderRequired": "Cada mensaje que llega a estas reacciones saldra en la starboard.",
+
 			"selectEmoji": "Escribe el emoji que quisieras que fuera el emoji para la starboard.",
 			"selectName": "Escribe el nombre de la starboard nueva. Si no eliges el nombre, se usara el nombre del canal elegido.",
 			"selectRequired": "Escribe la cantidad de reacciones que se necesitan para que un mensaje salga en la starboard.",
 			"selectRequiredToS": "Escribe la cantidad de reacciones que se necesitan para que el mensaje **NO** salga de la starboard.",
-			"selectBotsReact": "¿Quieres que las reacciones de los bots cuenten para que un mensaje salga en la starboard? (Por Defecto: No)",
-			"selectBotsMsg": "¿Quieres que los mensajes de los bots puedan salir en la starboard? (Por Defecto: No)",
+
 			"selectEmbedColor": "Elige algun color (hexadecimal) que quieras que tengan los embeds de la starboard (Por Defecto: #fe9cb1).\nPuedes usar este link: \"https://htmlcolorcodes.com/\"",
 
 			"optionalParam": " (Esta opcion es opcional, usa el boton de \"Omitir\", para saltarte esta opcion)",
@@ -80,7 +93,7 @@
 
 			"starboardCreated": "Starboard creada",
 			"starboardData": "> **Datos Starboard**\nNombre: `%v`\nCanal: <#%v>\nEmoji: %v",
-			"starboardRequisites": "> **Requisitos Starboard**\nReacciones requeridas: **%v**\nReacciones requeridas para quedarse: **%v**\nBots pueden reaccionar?: `%v`\nMensajes de bots cuentan?: `%v`",
+			"starboardRequisites": "> **Requisitos Starboard**\nReacciones requeridas: **%v**\nBots pueden reaccionar?: `%v`\nMensajes de bots cuentan?: `%v`",
 			"starboardCustom": "> **Customizacion**\nColor del embed: `#%v`"
 		}
 	}

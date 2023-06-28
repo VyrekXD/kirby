@@ -10,7 +10,6 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
 	"github.com/disgoorg/snowflake/v2"
-	"golang.org/x/exp/slices"
 
 	"github.com/forPelevin/gomoji"
 
@@ -23,7 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func starboardManual(ctx *handler.CommandEvent) error {
+func StarboardManual(ctx *handler.CommandEvent) error {
 	guildData := models.GuildConfig{Lang: "es-MX"}
 	starboards := []models.Starboard{}
 	err := models.GuildConfigColl().FindByID(ctx.GuildID().String(), &guildData)
@@ -36,21 +35,44 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		})
 
 		return nil
-	} else {
-		err := models.StarboardColl().SimpleFind(&starboards, bson.M{"guild_id": ctx.GuildID().String()})
-		if err != nil && err != mongo.ErrNoDocuments {
-			ctx.UpdateInteractionResponse(discord.MessageUpdate{
-				Content: langs.Pack(guildData.Lang).Command("starboard").SubCommand("manual").Getf("errFindGuildStarboards", err),
-			})
+	} else if err != nil && err != mongo.ErrNoDocuments {
+		ctx.UpdateInteractionResponse(discord.MessageUpdate{
+			Content: langs.Pack(guildData.Lang).
+				Command("starboard").
+				SubCommand("manual").
+				Getf("errUnexpected", err),
+		})
 
-			return nil
-		}
+		return nil
 	}
 
-	if slices.Contains(
-		constants.CurrentServersInSetup,
-		ctx.GuildID().String(),
-	) {
+	err = models.StarboardColl().
+		SimpleFind(&starboards, bson.M{"guild_id": ctx.GuildID().String()})
+	if err != nil && err != mongo.ErrNoDocuments {
+		ctx.UpdateInteractionResponse(discord.MessageUpdate{
+			Content: langs.Pack(guildData.Lang).
+				Command("starboard").
+				SubCommand("manual").
+				Getf("errFindGuildStarboards", err),
+		})
+
+		return nil
+	}
+
+	findTempStar := &models.TempStarboard{}
+	err = models.TempStarboardColl().
+		First(models.TempStarboard{GuildId: ctx.GuildID().String()}, findTempStar)
+	if err != nil && err != mongo.ErrNoDocuments {
+		ctx.UpdateInteractionResponse(discord.MessageUpdate{
+			Content: langs.Pack(guildData.Lang).
+				Command("starboard").
+				SubCommand("manual").
+				Getf("errUnexpected", err),
+		})
+
+		return nil
+	}
+	if (findTempStar != &models.TempStarboard{}) {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: langs.Pack(guildData.Lang).
 				Command("starboard").
@@ -58,18 +80,6 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		})
 
 		return nil
-	} else {
-		constants.CurrentServersInSetup = append(constants.CurrentServersInSetup, ctx.GuildID().String())
-
-		defer func() {
-			i := slices.Index(constants.CurrentServersInSetup, ctx.GuildID().String())
-
-			constants.CurrentServersInSetup = slices.Delete(
-				constants.CurrentServersInSetup,
-				slices.Index(constants.CurrentServersInSetup, ctx.GuildID().String()),
-				i+1,
-			)
-		}()
 	}
 
 	cmdPack := langs.Pack(guildData.Lang).
@@ -159,25 +169,10 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		return nil
 	}
 
-	requiredToStay, ok := data.OptInt("requeridos-para-quedarse")
-	if !ok {
-		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: cmdPack.Get("noRequiredToStay"),
-		})
-
-		return nil
-	} else if requiredToStay < 0 || requiredToStay >= required {
-		ctx.UpdateInteractionResponse(discord.MessageUpdate{
-			Content: cmdPack.Get("noValidRequiredToStay"),
-		})
-
-		return nil
-	}
-
 	name, ok := data.OptString("nombre")
 	if !ok {
 		name = channel.Name
-	} else if len(name) > 100 {
+	} else if len(name) > 25 || len(name) < 5 {
 		ctx.UpdateInteractionResponse(discord.MessageUpdate{
 			Content: cmdPack.Get("noValidName"),
 		})
@@ -279,7 +274,6 @@ func starboardManual(ctx *handler.CommandEvent) error {
 		ChannelId:       channel.ID.String(),
 		Emoji:           emoji,
 		Required:        required,
-		RequiredToStay:  requiredToStay,
 		BotsReact:       botsCanReact,
 		BotsMessages:    botsMessages,
 		ChannelListType: listType,
@@ -342,7 +336,7 @@ func starboardManual(ctx *handler.CommandEvent) error {
 					},
 					{
 						Name:   "\u0020",
-						Value:  *cmdPack.Getf("starboardRequisites", starboard.Required, starboard.RequiredToStay, utils.ReadableBool(&starboard.BotsReact, "Si.", "No."), utils.ReadableBool(&starboard.BotsMessages, "Si.", "No.")),
+						Value:  *cmdPack.Getf("starboardRequisites", starboard.Required, utils.ReadableBool(&starboard.BotsReact, "Si.", "No."), utils.ReadableBool(&starboard.BotsMessages, "Si.", "No.")),
 						Inline: json.Ptr(true),
 					},
 					{
