@@ -1,7 +1,6 @@
 package starboard
 
 import (
-	"context"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
@@ -18,6 +17,7 @@ import (
 )
 
 const (
+	GetId           = "/{id}"
 	BaseComponentId = "starboard:"
 	SelectChannelId = BaseComponentId + "channel"
 	ModalId         = BaseComponentId + "modal"
@@ -26,7 +26,6 @@ const (
 	YesButtonId     = BaseComponentId + "yes"
 	NoButtonId      = BaseComponentId + "no"
 	SkipButtonId    = BaseComponentId + "skip"
-	OmitButtonId    = BaseComponentId + "omit"
 )
 
 func DeleteTempStarboard(tempStarboard *models.TempStarboard) {
@@ -119,9 +118,9 @@ func StarboardInteractivo(ctx *handler.CommandEvent) error {
 			MessageId:    msg.ID.String(),
 		}
 
-		_, err = models.TempStarboardColl().InsertOne(context.Background(), tempStarboard)
+		err = models.TempStarboardColl().Create(tempStarboard)
 		if err != nil {
-			_, err = ctx.Client().Rest().UpdateMessage(
+			ctx.Client().Rest().UpdateMessage(
 				msg.ChannelID,
 				msg.ID, discord.MessageUpdate{
 					Content: langs.Pack(guildData.Lang).
@@ -136,7 +135,7 @@ func StarboardInteractivo(ctx *handler.CommandEvent) error {
 			Components: json.Ptr([]discord.ContainerComponent{
 				discord.NewActionRow(
 					discord.ChannelSelectMenuComponent{
-						CustomID:     SelectChannelId + "/" + tempStarboard.ID.String(),
+						CustomID:     SelectChannelId + "/" + tempStarboard.ID.Hex(),
 						MaxValues:    1,
 						ChannelTypes: []discord.ChannelType{discord.ChannelTypeGuildText},
 					},
@@ -146,9 +145,9 @@ func StarboardInteractivo(ctx *handler.CommandEvent) error {
 
 		utils.WaitDo(time.Second*50, func() {
 			data := &models.TempStarboard{}
-			models.TempStarboardColl().First(tempStarboard, data)
+			err := models.TempStarboardColl().First(data, tempStarboard)
 
-			if data.ChannelId == "" {
+			if err == nil && data.ChannelId == "" {
 				DeleteTempStarboard(tempStarboard)
 
 				_, errM := ctx.Client().Rest().UpdateMessage(

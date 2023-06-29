@@ -36,13 +36,25 @@ func HandleCommands(_ bot.Client) handler.Router {
 			)
 		})
 
-		h.Component("/"+starboard.SelectChannelId, starboard.SelectChannel)
+		h.Component(
+			"/"+starboard.SelectChannelId+"/{id}",
+			starboard.SelectChannel,
+		)
 
-		h.Modal("/"+starboard.ModalId, starboard.Modal)
+		h.Modal("/"+starboard.ModalId+starboard.GetId, starboard.Modal)
 
-		h.Component("/"+starboard.YesButtonId, starboard.YesButton)
-		h.Component("/"+starboard.NoButtonId, starboard.NoButton)
-		h.Component("/"+starboard.OmitButtonId, starboard.OmitButton)
+		h.Component(
+			"/"+starboard.YesButtonId+starboard.GetId,
+			starboard.YesButton,
+		)
+		h.Component(
+			"/"+starboard.NoButtonId+starboard.GetId,
+			starboard.NoButton,
+		)
+		h.Component(
+			"/"+starboard.SkipButtonId+starboard.GetId,
+			starboard.SkipButton,
+		)
 	})
 
 	return h

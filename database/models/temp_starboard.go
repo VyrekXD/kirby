@@ -9,6 +9,7 @@ var (
 	PhaseBotsMessages  = 3
 	PhaseEmoji         = 4
 	PhaseEmbedColor    = 5
+	PhaseConfirm       = 6
 )
 
 type TempStarboard struct {

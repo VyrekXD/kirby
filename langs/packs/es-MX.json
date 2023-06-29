@@ -22,28 +22,21 @@
 			"errNoValidName": "El nombre de la starboard no puede ser mayor a 25 caracteres!",
 			"errCantUpdate": "No se pudo actualizar los datos de la starboard: %v",
 
+			"labelName": "Nombre de la starboard",
+			"labelRequired": "Cantidad requerida",
+			"labelOptional": " (Opcional)",
+
 			"placeholderSelectChannel": "Selecciona un canal.",
+			"placeholderName": "Este nombre sera usado para distinguir la starboard.",
+			"placeholderRequired": "Cada mensaje que llega a estas reacciones saldra en la starboard.",
 
 			"selectChannel": "Selecciona el canal donde quieres que aparezcan los mensajes de la starboard. (Si no aparece el canal que deseas aqui, usa el comando /starboard manual)",
 			"selectBotsReact": "¿Quieres que las reacciones de los bots cuenten para que un mensaje salga en la starboard? (Por Defecto: No, puedes omitir esta opcion usando el boton)",
 			"selectBotsMsg": "¿Quieres que los mensajes de los bots puedan salir en la starboard? (Por Defecto: No, puedes omitir esta opcion usando el boton)",
+			"selectEmbedColor": "Elige algun color (hexadecimal) que quieras que tengan los embeds de la starboard (Por Defecto: #fe9cb1).\nPuedes usar este link: \"https://htmlcolorcodes.com/\"",
+			"selectEmoji": "Escribe el emoji que quisieras que fuera el emoji para la starboard.",
 
 			"respondModal": "Responde los datos de el modal",
-
-			"labelName": "Nombre de la starboard",
-			"labelRequired": "Cantidad requerida",
-
-			"labelOptional": " (Opcional)",
-
-			"placeholderName": "Este nombre sera usado para distinguir la starboard.",
-			"placeholderRequired": "Cada mensaje que llega a estas reacciones saldra en la starboard.",
-
-			"selectEmoji": "Escribe el emoji que quisieras que fuera el emoji para la starboard.",
-			"selectName": "Escribe el nombre de la starboard nueva. Si no eliges el nombre, se usara el nombre del canal elegido.",
-			"selectRequired": "Escribe la cantidad de reacciones que se necesitan para que un mensaje salga en la starboard.",
-			"selectRequiredToS": "Escribe la cantidad de reacciones que se necesitan para que el mensaje **NO** salga de la starboard.",
-
-			"selectEmbedColor": "Elige algun color (hexadecimal) que quieras que tengan los embeds de la starboard (Por Defecto: #fe9cb1).\nPuedes usar este link: \"https://htmlcolorcodes.com/\"",
 
 			"optionalParam": " (Esta opcion es opcional, usa el boton de \"Omitir\", para saltarte esta opcion)",
 
@@ -55,15 +48,15 @@
 			"starboardDesc": "La starboard ha sido creada, para configurar datos de esta o cambiar a lista blanca o añadir canales a la lista usa: `/starboard editar`",
 
 			"starboardConfirm": "Revisa la informacion de tu starboard, si esta correcta usa los botones.",
+			"starboardCancel": "Has cancelado la creacion de la starboard, para intentar denuevo usa el mismo comando.",
 
 			"starboardData": "> **Datos Starboard**\n",
 			"starboardDataChannel": "Canal: <#%v>\n",
-			"starboardDataEmoji": "Emoji: %v\n",
-			"starboardDataName": "Nombre: `%v`",
+			"starboardDataEmoji": "Emoji: %v",
+			"starboardDataName": "Nombre: `%v`\n",
 
 			"starboardRequisites": "> **Requisitos Starboard**\n",
 			"starboardRequisitesRequired": "Reacciones requeridas: **%v**\n",
-			"starboardRequisitesRequiredToS": "Reacciones requeridas para quedarse: **%v**\n",
 			"starboardRequisitesBotsReact": "Bots pueden reaccionar?: `%v`\n",
 			"starboardRequisitesBotsMsg": "Mensajes de bots cuentan?: `%v`"
 		},
@@ -83,8 +76,6 @@
 			"noValidEmoji": "Necesitas ingresar un (solo) emoji valido.",
 			"noRequired": "Necesitas ingresar un numero de reacciones requeridas para salir en la starboard.",
 			"noValidRequired": "Las reacciones necesarias no pueden ser menores o iguales a 0",
-			"noRequiredToStay": "Necesitas ingresar un numero de reacciones requeridas para quedarse en la starboard.",
-			"noValidRequiredToStay": "Las reacciones necesarias para quedarse no pueden ser menores a 0 o mayores o iguales que las reacciones necesarias.",
 			"noValidName": "El nombre de la starboard no puede ser mayor a 100 caracteres.",
 			"noValidHex": "El hex color que ingresaste no es valido. Para obtener un hex color entra aqui: \"https://htmlcolorcodes.com/\"\nElige un color que te guste y encuentra la parte donde aparece algo asi \"#F10AAF\" (ejemplo)\nDebe estar al lado de donde dice \"HEX\", copialo y vuelve a correr el comando. Recuerda que debe de tener el #.",
 			"noValidParsedHex": "Ocurrió un error al parsear el color del embed, probablemente es invalido.",

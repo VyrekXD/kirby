@@ -1,7 +1,6 @@
 package starboard
 
 import (
-	"context"
 	"strconv"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/vyrekxd/kirby/langs"
 	"github.com/vyrekxd/kirby/utils"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -39,11 +37,9 @@ func SelectChannel(e *handler.ComponentEvent) error {
 		Command("starboard").
 		SubCommand("interactivo")
 
-	// how can i convert the string ID to objectid
-
 	starboards := []models.Starboard{}
 	err = models.StarboardColl().
-		SimpleFind(&starboards, bson.M{"guild_id": e.GuildID().String()})
+		SimpleFind(&starboards, models.Starboard{GuildId: e.GuildID().String()})
 	if err != nil && err != mongo.ErrNoDocuments {
 		e.UpdateMessage(discord.MessageUpdate{
 			Content: langs.Pack(guildData.Lang).
@@ -56,9 +52,7 @@ func SelectChannel(e *handler.ComponentEvent) error {
 	}
 
 	data := &models.TempStarboard{}
-	err = models.TempStarboardColl().First(models.TempStarboard{
-		GuildId: e.GuildID().String(),
-	}, data)
+	err = models.TempStarboardColl().FindByID(e.Variables["id"], data)
 	if err == mongo.ErrNoDocuments {
 		e.UpdateMessage(discord.MessageUpdate{
 			Content:    cmdPack.Getf("errUnexpected", err),
@@ -78,7 +72,7 @@ func SelectChannel(e *handler.ComponentEvent) error {
 		return nil
 	}
 
-	if data.UserId == e.User().ID.String() {
+	if data.UserId != e.User().ID.String() {
 		return nil
 	}
 
@@ -121,8 +115,7 @@ func SelectChannel(e *handler.ComponentEvent) error {
 
 	data.ChannelId = channel.ID.String()
 	data.Phase = models.PhaseSelectChannel
-	_, err = models.TempStarboardColl().
-		UpdateOne(context.Background(), bson.M{"_id": data.ID}, bson.M{"$set": data})
+	err = models.TempStarboardColl().Update(data)
 	if err != nil {
 		DeleteTempStarboard(data)
 		e.UpdateMessage(discord.MessageUpdate{
@@ -153,6 +146,7 @@ func SelectChannel(e *handler.ComponentEvent) error {
 							Name: "\u0020",
 							Value: *cmdPack.Get("starboardData") +
 								*cmdPack.Getf("starboardDataChannel", channel.ID),
+							Inline: json.Ptr(true),
 						},
 					},
 				},
@@ -169,7 +163,7 @@ func SelectChannel(e *handler.ComponentEvent) error {
 	}
 
 	err = e.CreateModal(discord.ModalCreate{
-		CustomID: ModalId,
+		CustomID: ModalId + "/" + data.ID.Hex(),
 		Title:    *cmdPack.Get("starboardCreating"),
 		Components: []discord.ContainerComponent{
 			discord.ActionRowComponent{
@@ -209,9 +203,9 @@ func SelectChannel(e *handler.ComponentEvent) error {
 
 	utils.WaitDo(time.Second*50, func() {
 		find := &models.TempStarboard{}
-		models.TempStarboardColl().First(data, find)
+		err := models.TempStarboardColl().First(data, find)
 
-		if find.Required == 0 {
+		if err == nil && find.Required == 0 {
 			err := models.TempStarboardColl().Delete(find)
 			if err != nil {
 				log.Error().
@@ -253,9 +247,7 @@ func Modal(e *handler.ModalEvent) error {
 		Command("starboard").
 		SubCommand("interactivo")
 	data := &models.TempStarboard{}
-	res := models.TempStarboardColl().
-		FindOne(context.Background(), bson.M{"guild_id": e.GuildID().String()})
-	err = res.Decode(data)
+	err = models.TempStarboardColl().FindByID(e.Variables["id"], data)
 	if err != nil {
 		DeleteTempStarboard(data)
 		e.UpdateMessage(discord.MessageUpdate{
@@ -267,7 +259,7 @@ func Modal(e *handler.ModalEvent) error {
 		return nil
 
 	}
-	if data.UserId == e.User().ID.String() {
+	if data.UserId != e.User().ID.String() {
 		return nil
 	}
 
@@ -303,7 +295,7 @@ func Modal(e *handler.ModalEvent) error {
 		return nil
 	}
 
-	if required < 1 {
+	if required < 1 || required > 100 {
 		DeleteTempStarboard(data)
 		e.UpdateMessage(discord.MessageUpdate{
 			Content:    cmdPack.Get("errNoValidRequired"),
@@ -317,8 +309,7 @@ func Modal(e *handler.ModalEvent) error {
 	data.Name = name
 	data.Required = required
 	data.Phase = models.PhaseModal
-	_, err = models.TempStarboardColl().
-		UpdateOne(context.TODO(), bson.M{"guild_id": e.GuildID().String()}, bson.M{"$set": data})
+	err = models.TempStarboardColl().Update(data)
 	if err != nil {
 		DeleteTempStarboard(data)
 		e.UpdateMessage(discord.MessageUpdate{
@@ -348,11 +339,13 @@ func Modal(e *handler.ModalEvent) error {
 						Value: *cmdPack.Get("starboardData") +
 							*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
 							*cmdPack.Getf("starboardDataName", name),
+						Inline: json.Ptr(true),
 					},
 					{
 						Name: "\u0020",
 						Value: *cmdPack.Get("starboardRequisites") +
 							*cmdPack.Getf("starboardRequisitesRequired", required),
+						Inline: json.Ptr(true),
 					},
 				},
 			},
@@ -361,20 +354,19 @@ func Modal(e *handler.ModalEvent) error {
 			discord.NewActionRow(
 				discord.NewPrimaryButton(
 					*langs.Pack(guildData.Lang).GetGlobal("yes"),
-					YesButtonId,
+					YesButtonId+"/"+data.ID.Hex(),
 				),
 				discord.NewPrimaryButton(
 					*langs.Pack(guildData.Lang).GetGlobal("no"),
-					NoButtonId,
+					NoButtonId+"/"+data.ID.Hex(),
 				),
 				discord.NewSecondaryButton(
 					*cmdPack.Get("skip"),
-					SkipButtonId,
+					SkipButtonId+"/"+data.ID.Hex(),
 				),
 			),
 		}),
 	})
-
 	if err != nil {
 		DeleteTempStarboard(data)
 		log.Error().
@@ -386,9 +378,9 @@ func Modal(e *handler.ModalEvent) error {
 
 	utils.WaitDo(time.Second*50, func() {
 		find := &models.TempStarboard{}
-		models.TempStarboardColl().First(data, find)
+		err := models.TempStarboardColl().First(data, find)
 
-		if find.Phase != models.PhaseBotsMessages {
+		if err == nil && find.Phase != models.PhaseBotsMessages {
 			err := models.TempStarboardColl().Delete(find)
 			if err != nil {
 				log.Error().
@@ -435,9 +427,7 @@ func YesButton(e *handler.ComponentEvent) error {
 		SubCommand("interactivo")
 
 	data := &models.TempStarboard{}
-	err = models.TempStarboardColl().First(models.TempStarboard{
-		GuildId: e.GuildID().String(),
-	}, data)
+	err = models.TempStarboardColl().FindByID(e.Variables["id"], data)
 	if err == mongo.ErrNoDocuments {
 		e.UpdateMessage(discord.MessageUpdate{
 			Content:    cmdPack.Getf("errUnexpected", err),
@@ -457,17 +447,16 @@ func YesButton(e *handler.ComponentEvent) error {
 		return nil
 	}
 
-	if data.UserId == e.User().ID.String() {
+	if data.UserId != e.User().ID.String() {
 		return nil
 	}
 
 	switch data.Phase {
 	case models.PhaseModal:
 		{
-			data.BotsMessages = true
-			data.Phase = models.PhaseBotsMessages
-			_, err = models.TempStarboardColl().
-				UpdateOne(context.Background(), bson.M{"_id": data.ID}, bson.M{"$set": data})
+			data.BotsReact = true
+			data.Phase = models.PhaseBotsReact
+			err = models.TempStarboardColl().Update(data)
 			if err != nil {
 				DeleteTempStarboard(data)
 				e.UpdateMessage(discord.MessageUpdate{
@@ -488,7 +477,7 @@ func YesButton(e *handler.ComponentEvent) error {
 						}),
 						Title: *cmdPack.Get("starboardCreating"),
 						Color: constants.Colors.Main,
-						Description: *cmdPack.Get("selectBotsMsg") +
+						Description: *cmdPack.Get("selectBotsReact") +
 							*cmdPack.Get("useButtons"),
 						Timestamp: json.Ptr(time.Now()),
 						Fields: []discord.EmbedField{
@@ -497,17 +486,18 @@ func YesButton(e *handler.ComponentEvent) error {
 								Value: *cmdPack.Get("starboardData") +
 									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
 									*cmdPack.Getf("starboardDataName", data.Name),
+								Inline: json.Ptr(true),
 							},
 							{
 								Name: "\u0020",
 								Value: *cmdPack.Get("starboardRequisites") +
 									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
 									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
-										&data.BotsMessages,
+										&data.BotsReact,
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
-									),
-									),
+									)),
+								Inline: json.Ptr(true),
 							},
 						},
 					},
@@ -516,15 +506,15 @@ func YesButton(e *handler.ComponentEvent) error {
 					discord.NewActionRow(
 						discord.NewPrimaryButton(
 							*langs.Pack(guildData.Lang).GetGlobal("yes"),
-							YesButtonId,
+							YesButtonId+"/"+data.ID.Hex(),
 						),
 						discord.NewPrimaryButton(
 							*langs.Pack(guildData.Lang).GetGlobal("no"),
-							NoButtonId,
+							NoButtonId+"/"+data.ID.Hex(),
 						),
 						discord.NewSecondaryButton(
 							*cmdPack.Get("skip"),
-							SkipButtonId,
+							SkipButtonId+"/"+data.ID.Hex(),
 						),
 					),
 				}),
@@ -540,9 +530,9 @@ func YesButton(e *handler.ComponentEvent) error {
 
 			utils.WaitDo(time.Second*50, func() {
 				find := &models.TempStarboard{}
-				models.TempStarboardColl().First(data, find)
+				err := models.TempStarboardColl().First(data, find)
 
-				if find.Phase != models.PhaseBotsReact {
+				if err == nil && find.Phase != models.PhaseBotsReact {
 					err := models.TempStarboardColl().Delete(find)
 					if err != nil {
 						log.Error().
@@ -564,7 +554,7 @@ func YesButton(e *handler.ComponentEvent) error {
 					if errM != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to edit message in \"starboard:interactivo\"")
+							Msg("Error ocurred when trying to edit message in \"starboard:interactivo:yesbutton\"")
 					}
 				}
 			})
@@ -572,12 +562,11 @@ func YesButton(e *handler.ComponentEvent) error {
 			return nil
 		}
 
-	case models.PhaseBotsMessages:
+	case models.PhaseBotsReact:
 		{
-			data.BotsReact = true
-			data.Phase = models.PhaseBotsReact
-			_, err = models.TempStarboardColl().
-				UpdateOne(context.Background(), bson.M{"_id": data.ID}, bson.M{"$set": data})
+			data.BotsMessages = true
+			data.Phase = models.PhaseBotsMessages
+			err = models.TempStarboardColl().Update(data)
 			if err != nil {
 				DeleteTempStarboard(data)
 				e.UpdateMessage(discord.MessageUpdate{
@@ -606,13 +595,14 @@ func YesButton(e *handler.ComponentEvent) error {
 								Value: *cmdPack.Get("starboardData") +
 									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
 									*cmdPack.Getf("starboardDataName", data.Name),
+								Inline: json.Ptr(true),
 							},
 							{
 								Name: "\u0020",
 								Value: *cmdPack.Get("starboardRequisites") +
 									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
 									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
-										&data.BotsMessages,
+										&data.BotsReact,
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)) +
@@ -621,26 +611,12 @@ func YesButton(e *handler.ComponentEvent) error {
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)),
+								Inline: json.Ptr(true),
 							},
 						},
 					},
 				}),
-				Components: json.Ptr([]discord.ContainerComponent{
-					discord.NewActionRow(
-						discord.NewPrimaryButton(
-							*langs.Pack(guildData.Lang).GetGlobal("yes"),
-							YesButtonId,
-						),
-						discord.NewPrimaryButton(
-							*langs.Pack(guildData.Lang).GetGlobal("no"),
-							NoButtonId,
-						),
-						discord.NewSecondaryButton(
-							*cmdPack.Get("skip"),
-							SkipButtonId,
-						),
-					),
-				}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
 			})
 			if err != nil {
 				DeleteTempStarboard(data)
@@ -653,9 +629,9 @@ func YesButton(e *handler.ComponentEvent) error {
 
 			utils.WaitDo(time.Second*50, func() {
 				find := &models.TempStarboard{}
-				models.TempStarboardColl().First(data, find)
+				err := models.TempStarboardColl().First(data, find)
 
-				if find.Emoji == "" {
+				if err == nil && find.Emoji == "" {
 					err := models.TempStarboardColl().Delete(find)
 					if err != nil {
 						log.Error().
@@ -677,10 +653,110 @@ func YesButton(e *handler.ComponentEvent) error {
 					if errM != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to edit message in \"starboard:interactivo\"")
+							Msg("Error ocurred when trying to edit message in \"starboard:interactivo:yesbutton\"")
 					}
 				}
 			})
+
+			return nil
+		}
+
+	case models.PhaseEmbedColor:
+		{
+			err = models.TempStarboardColl().Delete(data)
+			if err != nil {
+				e.UpdateMessage(discord.MessageUpdate{
+					Content:    cmdPack.Getf("errUnexpected", err),
+					Embeds:     json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				})
+
+				return nil
+			}
+
+			starboard := &models.Starboard{
+				GuildId:      data.GuildId,
+				Name:         data.Name,
+				ChannelId:    data.ChannelId,
+				Emoji:        data.Emoji,
+				Required:     data.Required,
+				BotsReact:    data.BotsReact,
+				BotsMessages: data.BotsMessages,
+				EmbedColor:   data.EmbedColor,
+			}
+			err = models.StarboardColl().Create(starboard)
+			if err != nil {
+				e.UpdateMessage(discord.MessageUpdate{
+					Content:    cmdPack.Getf("errUnexpected", err),
+					Embeds:     json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				})
+
+				return nil
+			}
+
+			err = e.UpdateMessage(discord.MessageUpdate{
+				Embeds: json.Ptr([]discord.Embed{
+					{
+						Author: json.Ptr(discord.EmbedAuthor{
+							Name:    e.Message.Author.Username,
+							IconURL: *e.Message.Author.AvatarURL(),
+						}),
+						Title:       *cmdPack.Get("starboardCreated"),
+						Color:       constants.Colors.Main,
+						Description: *cmdPack.Get("starboardDesc"),
+						Timestamp:   json.Ptr(time.Now()),
+						Fields: []discord.EmbedField{
+							{
+								Name: "\u0020",
+								Value: *cmdPack.Get("starboardData") +
+									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
+									*cmdPack.Getf("starboardDataName", data.Name) +
+									*cmdPack.Getf("starboardDataEmoji", data.Emoji),
+								Inline: json.Ptr(true),
+							},
+							{
+								Name: "\u0020",
+								Value: *cmdPack.Get("starboardRequisites") +
+									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
+									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
+										&data.BotsReact,
+										*langs.Pack(guildData.Lang).GetGlobal("yes"),
+										*langs.Pack(guildData.Lang).GetGlobal("no"),
+									)) +
+									*cmdPack.Getf("starboardRequisitesBotsMsg", utils.ReadableBool(
+										&data.BotsMessages,
+										*langs.Pack(guildData.Lang).GetGlobal("yes"),
+										*langs.Pack(guildData.Lang).GetGlobal("no"),
+									)),
+								Inline: json.Ptr(true),
+							},
+							{
+								Name:   "\u0020",
+								Value:  "\u0020",
+								Inline: json.Ptr(true),
+							},
+							{
+								Name: "\u0020",
+								Value: *langs.Pack(guildData.Lang).
+									Command("starboard").
+									SubCommand("manual").
+									Getf("starboardCustom", utils.ToString(data.EmbedColor)),
+								Inline: json.Ptr(true),
+							},
+						},
+					},
+				}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
+			})
+			if err != nil {
+				models.StarboardColl().Delete(starboard)
+				log.Error().
+					Err(err).
+					Msg("Error ocurred when trying to respond in \"starboard:interactivo:skipbutton\"")
+
+				return nil
+			}
 
 			return nil
 		}
@@ -718,9 +794,7 @@ func NoButton(e *handler.ComponentEvent) error {
 		SubCommand("interactivo")
 
 	data := &models.TempStarboard{}
-	err = models.TempStarboardColl().First(models.TempStarboard{
-		GuildId: e.GuildID().String(),
-	}, data)
+	err = models.TempStarboardColl().FindByID(e.Variables["id"], data)
 	if err == mongo.ErrNoDocuments {
 		e.UpdateMessage(discord.MessageUpdate{
 			Content:    cmdPack.Getf("errUnexpected", err),
@@ -740,17 +814,16 @@ func NoButton(e *handler.ComponentEvent) error {
 		return nil
 	}
 
-	if data.UserId == e.User().ID.String() {
+	if data.UserId != e.User().ID.String() {
 		return nil
 	}
 
 	switch data.Phase {
 	case models.PhaseModal:
 		{
-			data.BotsMessages = false
-			data.Phase = models.PhaseBotsMessages
-			_, err = models.TempStarboardColl().
-				UpdateOne(context.Background(), bson.M{"_id": data.ID}, bson.M{"$set": data})
+			data.BotsReact = false
+			data.Phase = models.PhaseBotsReact
+			err = models.TempStarboardColl().Update(data)
 			if err != nil {
 				DeleteTempStarboard(data)
 				e.UpdateMessage(discord.MessageUpdate{
@@ -780,16 +853,18 @@ func NoButton(e *handler.ComponentEvent) error {
 								Value: *cmdPack.Get("starboardData") +
 									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
 									*cmdPack.Getf("starboardDataName", data.Name),
+								Inline: json.Ptr(true),
 							},
 							{
 								Name: "\u0020",
 								Value: *cmdPack.Get("starboardRequisites") +
 									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
 									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
-										&data.BotsMessages,
+										&data.BotsReact,
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)),
+								Inline: json.Ptr(true),
 							},
 						},
 					},
@@ -798,15 +873,15 @@ func NoButton(e *handler.ComponentEvent) error {
 					discord.NewActionRow(
 						discord.NewPrimaryButton(
 							*langs.Pack(guildData.Lang).GetGlobal("yes"),
-							YesButtonId,
+							YesButtonId+"/"+data.ID.Hex(),
 						),
 						discord.NewPrimaryButton(
 							*langs.Pack(guildData.Lang).GetGlobal("no"),
-							NoButtonId,
+							NoButtonId+"/"+data.ID.Hex(),
 						),
 						discord.NewSecondaryButton(
 							*cmdPack.Get("skip"),
-							SkipButtonId,
+							SkipButtonId+"/"+data.ID.Hex(),
 						),
 					),
 				}),
@@ -815,21 +890,21 @@ func NoButton(e *handler.ComponentEvent) error {
 				DeleteTempStarboard(data)
 				log.Error().
 					Err(err).
-					Msg("Error ocurred when trying to respond in \"starboard:interactivo:yesbutton\"")
+					Msg("Error ocurred when trying to respond in \"starboard:interactivo:nobutton\"")
 
 				return nil
 			}
 
 			utils.WaitDo(time.Second*50, func() {
 				find := &models.TempStarboard{}
-				models.TempStarboardColl().First(data, find)
+				err := models.TempStarboardColl().First(data, find)
 
-				if find.Phase != models.PhaseBotsReact {
+				if err == nil && find.Phase != models.PhaseBotsReact {
 					err := models.TempStarboardColl().Delete(find)
 					if err != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:yesbutton\"")
+							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:nobutton\"")
 					}
 
 					_, errM := e.Client().Rest().UpdateMessage(
@@ -846,7 +921,7 @@ func NoButton(e *handler.ComponentEvent) error {
 					if errM != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to edit message in \"starboard:interactivo\"")
+							Msg("Error ocurred when trying to edit message in \"starboard:interactivo:nobutton\"")
 					}
 				}
 			})
@@ -854,12 +929,11 @@ func NoButton(e *handler.ComponentEvent) error {
 			return nil
 		}
 
-	case models.PhaseBotsMessages:
+	case models.PhaseBotsReact:
 		{
-			data.BotsReact = true
-			data.Phase = models.PhaseBotsReact
-			_, err = models.TempStarboardColl().
-				UpdateOne(context.Background(), bson.M{"_id": data.ID}, bson.M{"$set": data})
+			data.BotsMessages = true
+			data.Phase = models.PhaseBotsMessages
+			err = models.TempStarboardColl().Update(data)
 			if err != nil {
 				DeleteTempStarboard(data)
 				e.UpdateMessage(discord.MessageUpdate{
@@ -888,13 +962,14 @@ func NoButton(e *handler.ComponentEvent) error {
 								Value: *cmdPack.Get("starboardData") +
 									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
 									*cmdPack.Getf("starboardDataName", data.Name),
+								Inline: json.Ptr(true),
 							},
 							{
 								Name: "\u0020",
 								Value: *cmdPack.Get("starboardRequisites") +
 									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
 									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
-										&data.BotsMessages,
+										&data.BotsReact,
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)) +
@@ -903,46 +978,32 @@ func NoButton(e *handler.ComponentEvent) error {
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)),
+								Inline: json.Ptr(true),
 							},
 						},
 					},
 				}),
-				Components: json.Ptr([]discord.ContainerComponent{
-					discord.NewActionRow(
-						discord.NewPrimaryButton(
-							*langs.Pack(guildData.Lang).GetGlobal("yes"),
-							YesButtonId,
-						),
-						discord.NewPrimaryButton(
-							*langs.Pack(guildData.Lang).GetGlobal("no"),
-							NoButtonId,
-						),
-						discord.NewSecondaryButton(
-							*cmdPack.Get("skip"),
-							SkipButtonId,
-						),
-					),
-				}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
 			})
 			if err != nil {
 				DeleteTempStarboard(data)
 				log.Error().
 					Err(err).
-					Msg("Error ocurred when trying to respond in \"starboard:interactivo:yesbutton\"")
+					Msg("Error ocurred when trying to respond in \"starboard:interactivo:nobutton\"")
 
 				return nil
 			}
 
 			utils.WaitDo(time.Second*50, func() {
 				find := &models.TempStarboard{}
-				models.TempStarboardColl().First(data, find)
+				err := models.TempStarboardColl().First(data, find)
 
-				if find.Emoji == "" {
+				if err == nil && find.Emoji == "" {
 					err := models.TempStarboardColl().Delete(find)
 					if err != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:yesbutton\"")
+							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:nobutton\"")
 					}
 
 					_, errM := e.Client().Rest().UpdateMessage(
@@ -959,9 +1020,31 @@ func NoButton(e *handler.ComponentEvent) error {
 					if errM != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to edit message in \"starboard:interactivo\"")
+							Msg("Error ocurred when trying to edit message in \"starboard:interactivo:nobutton\"")
 					}
 				}
+			})
+
+			return nil
+		}
+
+	case models.PhaseEmbedColor:
+		{
+			err = models.TempStarboardColl().Delete(data)
+			if err != nil {
+				e.UpdateMessage(discord.MessageUpdate{
+					Content:    cmdPack.Getf("errUnexpected", err),
+					Embeds:     json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				})
+
+				return nil
+			}
+
+			e.UpdateMessage(discord.MessageUpdate{
+				Content:    cmdPack.Getf("starboardCancel", err),
+				Embeds:     json.Ptr([]discord.Embed{}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
 			})
 
 			return nil
@@ -981,7 +1064,7 @@ func NoButton(e *handler.ComponentEvent) error {
 	return nil
 }
 
-func OmitButton(e *handler.ComponentEvent) error {
+func SkipButton(e *handler.ComponentEvent) error {
 	if e.Message.Author.ID != e.Client().ID() {
 		return nil
 	}
@@ -1000,9 +1083,7 @@ func OmitButton(e *handler.ComponentEvent) error {
 		SubCommand("interactivo")
 
 	data := &models.TempStarboard{}
-	err = models.TempStarboardColl().First(models.TempStarboard{
-		GuildId: e.GuildID().String(),
-	}, data)
+	err = models.TempStarboardColl().FindByID(e.Variables["id"], data)
 	if err == mongo.ErrNoDocuments {
 		e.UpdateMessage(discord.MessageUpdate{
 			Content:    cmdPack.Getf("errUnexpected", err),
@@ -1025,9 +1106,8 @@ func OmitButton(e *handler.ComponentEvent) error {
 	switch data.Phase {
 	case models.PhaseModal:
 		{
-			data.Phase = models.PhaseBotsMessages
-			_, err = models.TempStarboardColl().
-				UpdateOne(context.Background(), bson.M{"_id": data.ID}, bson.M{"$set": data})
+			data.Phase = models.PhaseBotsReact
+			err = models.TempStarboardColl().Update(data)
 			if err != nil {
 				DeleteTempStarboard(data)
 				e.UpdateMessage(discord.MessageUpdate{
@@ -1057,16 +1137,18 @@ func OmitButton(e *handler.ComponentEvent) error {
 								Value: *cmdPack.Get("starboardData") +
 									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
 									*cmdPack.Getf("starboardDataName", data.Name),
+								Inline: json.Ptr(true),
 							},
 							{
 								Name: "\u0020",
 								Value: *cmdPack.Get("starboardRequisites") +
 									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
 									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
-										&data.BotsMessages,
+										&data.BotsReact,
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)),
+								Inline: json.Ptr(true),
 							},
 						},
 					},
@@ -1075,15 +1157,15 @@ func OmitButton(e *handler.ComponentEvent) error {
 					discord.NewActionRow(
 						discord.NewPrimaryButton(
 							*langs.Pack(guildData.Lang).GetGlobal("yes"),
-							YesButtonId,
+							YesButtonId+"/"+data.ID.Hex(),
 						),
 						discord.NewPrimaryButton(
 							*langs.Pack(guildData.Lang).GetGlobal("no"),
-							NoButtonId,
+							NoButtonId+"/"+data.ID.Hex(),
 						),
 						discord.NewSecondaryButton(
 							*cmdPack.Get("skip"),
-							SkipButtonId,
+							SkipButtonId+"/"+data.ID.Hex(),
 						),
 					),
 				}),
@@ -1092,21 +1174,21 @@ func OmitButton(e *handler.ComponentEvent) error {
 				DeleteTempStarboard(data)
 				log.Error().
 					Err(err).
-					Msg("Error ocurred when trying to respond in \"starboard:interactivo:yesbutton\"")
+					Msg("Error ocurred when trying to respond in \"starboard:interactivo:skipbutton\"")
 
 				return nil
 			}
 
 			utils.WaitDo(time.Second*50, func() {
 				find := &models.TempStarboard{}
-				models.TempStarboardColl().First(data, find)
+				err := models.TempStarboardColl().First(data, find)
 
-				if find.Phase != models.PhaseBotsReact {
+				if err == nil && find.Phase != models.PhaseBotsReact {
 					err := models.TempStarboardColl().Delete(find)
 					if err != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:yesbutton\"")
+							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:skipbutton\"")
 					}
 
 					_, errM := e.Client().Rest().UpdateMessage(
@@ -1123,7 +1205,7 @@ func OmitButton(e *handler.ComponentEvent) error {
 					if errM != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to edit message in \"starboard:interactivo\"")
+							Msg("Error ocurred when trying to edit message in \"starboard:interactivo:skipbutton\"")
 					}
 				}
 			})
@@ -1131,11 +1213,10 @@ func OmitButton(e *handler.ComponentEvent) error {
 			return nil
 		}
 
-	case models.PhaseBotsMessages:
+	case models.PhaseBotsReact:
 		{
-			data.Phase = models.PhaseBotsReact
-			_, err = models.TempStarboardColl().
-				UpdateOne(context.Background(), bson.M{"_id": data.ID}, bson.M{"$set": data})
+			data.Phase = models.PhaseBotsMessages
+			err = models.TempStarboardColl().Update(data)
 			if err != nil {
 				DeleteTempStarboard(data)
 				e.UpdateMessage(discord.MessageUpdate{
@@ -1164,13 +1245,14 @@ func OmitButton(e *handler.ComponentEvent) error {
 								Value: *cmdPack.Get("starboardData") +
 									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
 									*cmdPack.Getf("starboardDataName", data.Name),
+								Inline: json.Ptr(true),
 							},
 							{
 								Name: "\u0020",
 								Value: *cmdPack.Get("starboardRequisites") +
 									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
 									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
-										&data.BotsMessages,
+										&data.BotsReact,
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)) +
@@ -1179,46 +1261,32 @@ func OmitButton(e *handler.ComponentEvent) error {
 										*langs.Pack(guildData.Lang).GetGlobal("yes"),
 										*langs.Pack(guildData.Lang).GetGlobal("no"),
 									)),
+								Inline: json.Ptr(true),
 							},
 						},
 					},
 				}),
-				Components: json.Ptr([]discord.ContainerComponent{
-					discord.NewActionRow(
-						discord.NewPrimaryButton(
-							*langs.Pack(guildData.Lang).GetGlobal("yes"),
-							YesButtonId,
-						),
-						discord.NewPrimaryButton(
-							*langs.Pack(guildData.Lang).GetGlobal("no"),
-							NoButtonId,
-						),
-						discord.NewSecondaryButton(
-							*cmdPack.Get("skip"),
-							SkipButtonId,
-						),
-					),
-				}),
+				Components: json.Ptr([]discord.ContainerComponent{}),
 			})
 			if err != nil {
 				DeleteTempStarboard(data)
 				log.Error().
 					Err(err).
-					Msg("Error ocurred when trying to respond in \"starboard:interactivo:yesbutton\"")
+					Msg("Error ocurred when trying to respond in \"starboard:interactivo:skipbutton\"")
 
 				return nil
 			}
 
 			utils.WaitDo(time.Second*50, func() {
 				find := &models.TempStarboard{}
-				models.TempStarboardColl().First(data, find)
+				err := models.TempStarboardColl().First(data, find)
 
-				if find.Emoji == "" {
+				if err == nil && find.Emoji == "" {
 					err := models.TempStarboardColl().Delete(find)
 					if err != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:yesbutton\"")
+							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:skipbutton\"")
 					}
 
 					_, errM := e.Client().Rest().UpdateMessage(
@@ -1235,7 +1303,130 @@ func OmitButton(e *handler.ComponentEvent) error {
 					if errM != nil {
 						log.Error().
 							Err(err).
-							Msg("Error ocurred when trying to edit message in \"starboard:interactivo\"")
+							Msg("Error ocurred when trying to edit message in \"starboard:interactivo:skipbutton\"")
+					}
+				}
+			})
+
+			return nil
+		}
+
+	case models.PhaseEmoji:
+		{
+			data.EmbedColor = constants.Colors.Main
+			data.Phase = models.PhaseEmbedColor
+			err = models.TempStarboardColl().Update(data)
+			if err != nil {
+				DeleteTempStarboard(data)
+				e.UpdateMessage(discord.MessageUpdate{
+					Content:    cmdPack.Getf("errCantUpdate", err),
+					Embeds:     json.Ptr([]discord.Embed{}),
+					Components: json.Ptr([]discord.ContainerComponent{}),
+				})
+
+				return nil
+			}
+
+			err = e.UpdateMessage(discord.MessageUpdate{
+				Embeds: json.Ptr([]discord.Embed{
+					{
+						Author: json.Ptr(discord.EmbedAuthor{
+							Name:    e.User().Username,
+							IconURL: *e.User().AvatarURL(),
+						}),
+						Title:       *cmdPack.Get("starboardCreating"),
+						Color:       constants.Colors.Main,
+						Description: *cmdPack.Get("starboardConfirm"),
+						Timestamp:   json.Ptr(time.Now()),
+						Fields: []discord.EmbedField{
+							{
+								Name: "\u0020",
+								Value: *cmdPack.Get("starboardData") +
+									*cmdPack.Getf("starboardDataChannel", data.ChannelId) +
+									*cmdPack.Getf("starboardDataName", data.Name) +
+									*cmdPack.Getf("starboardDataEmoji", data.Emoji),
+								Inline: json.Ptr(true),
+							},
+							{
+								Name: "\u0020",
+								Value: *cmdPack.Get("starboardRequisites") +
+									*cmdPack.Getf("starboardRequisitesRequired", data.Required) +
+									*cmdPack.Getf("starboardRequisitesBotsReact", utils.ReadableBool(
+										&data.BotsReact,
+										*langs.Pack(guildData.Lang).GetGlobal("yes"),
+										*langs.Pack(guildData.Lang).GetGlobal("no"),
+									)) +
+									*cmdPack.Getf("starboardRequisitesBotsMsg", utils.ReadableBool(
+										&data.BotsMessages,
+										*langs.Pack(guildData.Lang).GetGlobal("yes"),
+										*langs.Pack(guildData.Lang).GetGlobal("no"),
+									)),
+								Inline: json.Ptr(true),
+							},
+							{
+								Name:   "\u0020",
+								Value:  "\u0020",
+								Inline: json.Ptr(true),
+							},
+							{
+								Name: "\u0020",
+								Value: *langs.Pack(guildData.Lang).
+									Command("starboard").
+									SubCommand("manual").
+									Getf("starboardCustom", utils.ToString(data.EmbedColor)),
+							},
+						},
+					},
+				}),
+				Components: json.Ptr([]discord.ContainerComponent{
+					discord.NewActionRow(
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("yes"),
+							YesButtonId+"/"+data.ID.Hex(),
+						),
+						discord.NewPrimaryButton(
+							*langs.Pack(guildData.Lang).GetGlobal("no"),
+							NoButtonId+"/"+data.ID.Hex(),
+						),
+					),
+				}),
+			})
+			if err != nil {
+				DeleteTempStarboard(data)
+				log.Error().
+					Err(err).
+					Msg("Error ocurred when trying to respond in \"starboard:interactivo:skipbutton\"")
+
+				return nil
+			}
+
+			utils.WaitDo(time.Second*50, func() {
+				find := &models.TempStarboard{}
+				err := models.TempStarboardColl().First(data, find)
+
+				if err == nil && find.Phase != models.PhaseConfirm {
+					err := models.TempStarboardColl().Delete(find)
+					if err != nil {
+						log.Error().
+							Err(err).
+							Msg("Error ocurred when trying to delete document in \"starboard:interactivo:skipbutton\"")
+					}
+
+					_, errM := e.Client().Rest().UpdateMessage(
+						snowflake.MustParse(find.MsgChannelId),
+						snowflake.MustParse(find.MessageId),
+						discord.MessageUpdate{
+							Content: cmdPack.Get("errTimeout"),
+							Embeds:  json.Ptr([]discord.Embed{}),
+							Components: json.Ptr(
+								[]discord.ContainerComponent{},
+							),
+						},
+					)
+					if errM != nil {
+						log.Error().
+							Err(err).
+							Msg("Error ocurred when trying to edit message in \"starboard:interactivo:skipbutton\"")
 					}
 				}
 			})
