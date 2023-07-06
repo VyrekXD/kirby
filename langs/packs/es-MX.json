@@ -6,6 +6,8 @@
 	"starboard": {
 		"errCreateGuildData": "Un error ocurrio tratando de crear los datos de tu servidor: %v",
 		"errNoSubCommand": "No se pudo obtener el subcomando.",
+		"errUnexpected": "Ha ocurrido un error desconocido: %v",
+
 		"alreadyOnSetup": "No puedes hacer dos setups a la vez.",
 
 		"interactivo": {
@@ -15,7 +17,6 @@
 			"errTimeout": "Se acabo el tiempo... Intenta usar el comando de nuevo.",
 			"errNoValidPhase": "No se pudo obtener la fase actual del setup.",
 			"errNoChannel": "Puede que hayas seleccionado un canal pero yo no lo recibi, intenta de nuevo.",
-			"errUnexpected": "Ha ocurrido un error desconocido: %v",
 			"errNoValidEmoji": "Necesitas ingresar un (solo) emoji valido.",
 			"errNoValidNumber": "Necesitas ingresar un numero valido.",
 			"errNoValidRequired": "Las reacciones requeridas no pueden ser menores o iguales a 0.",
@@ -52,8 +53,8 @@
 
 			"starboardData": "> **Datos Starboard**\n",
 			"starboardDataChannel": "Canal: <#%v>\n",
-			"starboardDataEmoji": "Emoji: %v",
 			"starboardDataName": "Nombre: `%v`\n",
+			"starboardDataEmoji": "Emoji: %v",
 
 			"starboardRequisites": "> **Requisitos Starboard**\n",
 			"starboardRequisitesRequired": "Reacciones requeridas: **%v**\n",
@@ -77,7 +78,7 @@
 			"noRequired": "Necesitas ingresar un numero de reacciones requeridas para salir en la starboard.",
 			"noValidRequired": "Las reacciones necesarias no pueden ser menores o iguales a 0",
 			"noValidName": "El nombre de la starboard no puede ser mayor a 100 caracteres.",
-			"noValidHex": "El hex color que ingresaste no es valido. Para obtener un hex color entra aqui: \"https://htmlcolorcodes.com/\"\nElige un color que te guste y encuentra la parte donde aparece algo asi \"#F10AAF\" (ejemplo)\nDebe estar al lado de donde dice \"HEX\", copialo y vuelve a correr el comando. Recuerda que debe de tener el #.",
+			"noValidHex": "El hex color que ingresaste no es valido. Para obtener un hex color entra aqui: \"https://htmlcolorcodes.com/\"\nElige un color que te guste y encuentra la parte donde aparece algo asi \"#f10aaf\" (ejemplo)\nDebe estar al lado de donde dice \"HEX\", copialo y vuelve a correr el comando. Recuerda que debe de tener el #.",
 			"noValidParsedHex": "Ocurrió un error al parsear el color del embed, probablemente es invalido.",
 			"noChannelsOnWhite": "Ingresaste como tipo de lista **blanco** (true), necesitas al menos ingresar una id de canal.",
 			"noValidChannelId": "\"%v\" no es una ID de un canal.",
@@ -85,7 +86,38 @@
 			"starboardCreated": "Starboard creada",
 			"starboardData": "> **Datos Starboard**\nNombre: `%v`\nCanal: <#%v>\nEmoji: %v",
 			"starboardRequisites": "> **Requisitos Starboard**\nReacciones requeridas: **%v**\nBots pueden reaccionar?: `%v`\nMensajes de bots cuentan?: `%v`",
-			"starboardCustom": "> **Customizacion**\nColor del embed: `#%v`"
+			"starboardCustom": "> **Personalizacion**\nColor del embed: [#%v](https://www.color-hex.com/color/%v)"
+		},
+
+		"lista": {
+			"errNoStarboards": "No hay starboards en este servidor.",
+
+			"embedTitle": "Lista de Starboards",
+			"embedStarboardData": "**%v.** %v | %v | <#%v>\n`ID: %v`\n",
+			"embedFooter": "%v/%v starboards."
+		},
+
+		"ver": {
+			"errNoArgs": "No elegiste ningun canal o diste la ID de ninguna starboard.",
+			"errNoValidID": "La ID ingresada no es valida.",
+			"errNoValidEmoji": "El emoji de la starboard ya no existe o no es valido.",
+
+			"starboardLevels": "> **Niveles StarMessages**\n",
+			"starboardLevelsFirst": "Primer Emoji: %v\n",
+			"starboardLevelsSecond": "Segundo Nivel: **%v**, Emoji: %v\n",
+			"starboardLevelsThird": "Tercer Nivel: **%v**, Emoji: %v",
+
+			"starboardList": "> **Lista de Starboard**\n",
+			"starboardListType": "Tipo: **%v**\n",
+			"starboardListChannels": "Canales: %v",
+
+			"starboardFooter": "ID de la starboard: %v"
 		}
+	},
+
+	"reaction_events": {
+		"attachments": "**Archivos Adjuntos:**",
+		"more_attachments": "[Mas archivos adjuntos (%v)]",
+		"jump_to_message": "Mensaje Original"
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/vyrekxd/kirby/commands/information"
 	"github.com/vyrekxd/kirby/commands/starboard"
+	"github.com/vyrekxd/kirby/commands/starboard/components"
 )
 
 var CommandsData = []discord.ApplicationCommandCreate{
@@ -34,26 +35,43 @@ func HandleCommands(_ bot.Client) handler.Router {
 				"/"+starboard.Starboard.Options[1].OptionName(),
 				starboard.StarboardManual,
 			)
+			r.Command(
+				"/"+starboard.Starboard.Options[2].OptionName(),
+				starboard.StarboardLista,
+			)
+			r.Command(
+				"/"+starboard.Starboard.Options[3].OptionName(),
+				starboard.StarboardVer,
+			)
 		})
 
 		h.Component(
 			"/"+starboard.SelectChannelId+"/{id}",
-			starboard.SelectChannel,
+			components.SelectChannel,
 		)
 
-		h.Modal("/"+starboard.ModalId+starboard.GetId, starboard.Modal)
+		h.Modal("/"+starboard.ModalId+starboard.GetId, components.Modal)
 
 		h.Component(
 			"/"+starboard.YesButtonId+starboard.GetId,
-			starboard.YesButton,
+			components.YesButton,
 		)
 		h.Component(
 			"/"+starboard.NoButtonId+starboard.GetId,
-			starboard.NoButton,
+			components.NoButton,
 		)
 		h.Component(
 			"/"+starboard.SkipButtonId+starboard.GetId,
-			starboard.SkipButton,
+			components.SkipButton,
+		)
+
+		h.Component(
+			"/"+starboard.NextId+starboard.GetIndex,
+			components.NextButton,
+		)
+		h.Component(
+			"/"+starboard.ReturnId+starboard.GetIndex,
+			components.ReturnButton,
 		)
 	})
 

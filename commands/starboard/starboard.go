@@ -78,19 +78,6 @@ var Starboard = discord.SlashCommandCreate{
 					},
 					Required: true,
 				},
-				discord.ApplicationCommandOptionInt{
-					Name: "requeridos-para-quedarse",
-					NameLocalizations: map[discord.Locale]string{
-						discord.LocaleEnglishUS: "required-to-stay",
-						discord.LocaleEnglishGB: "required-to-stay",
-					},
-					Description: "Las reacciones req. para no salir en la starboard. Debe ser mas que las reacciones \"requeridas\".",
-					DescriptionLocalizations: map[discord.Locale]string{
-						discord.LocaleEnglishUS: "The reactions required to stay on the starboard. Needs to be more than \"required\".",
-						discord.LocaleEnglishGB: "The reactions required to stay on the starboard. Needs to be more than \"required\".",
-					},
-					Required: true,
-				},
 				discord.ApplicationCommandOptionString{
 					Name: "nombre",
 					NameLocalizations: map[discord.Locale]string{
@@ -172,6 +159,42 @@ var Starboard = discord.SlashCommandCreate{
 					DescriptionLocalizations: map[discord.Locale]string{
 						discord.LocaleEnglishUS: "The channels on the list; Separe them by \",\" o \" \" (space). Use \"list-type\" for more information.",
 						discord.LocaleEnglishGB: "The channels on the list; Separe them by \",\" o \" \" (space). Use \"list-type\" for more information.",
+					},
+					Required: false,
+				},
+			},
+		},
+		discord.ApplicationCommandOptionSubCommand{
+			Name:        "lista",
+			Description: "Lista de todas las starboards de el server.",
+			DescriptionLocalizations: map[discord.Locale]string{
+				discord.LocaleEnglishUS: "List of all the starboards of the server.",
+				discord.LocaleEnglishGB: "List of all the starboards of the server.",
+			},
+		},
+		discord.ApplicationCommandOptionSubCommand{
+			Name:        "ver",
+			Description: "Ve los datos de una starboard y editala.",
+			DescriptionLocalizations: map[discord.Locale]string{
+				discord.LocaleEnglishUS: "See the data of a starboard and edit it.",
+				discord.LocaleEnglishGB: "See the data of a starboard and edit it.",
+			},
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
+					Name:        "id",
+					Description: `La id de la starboard. (Puedes usar la id de la starboard o seleccionar un canal)`,
+					DescriptionLocalizations: map[discord.Locale]string{
+						discord.LocaleEnglishUS: `The id of the starboard. (You can use the id of the starboard or select a channel)`,
+						discord.LocaleEnglishGB: `The id of the starboard. (You can use the id of the starboard or select a channel)`,
+					},
+					Required: false,
+				},
+				discord.ApplicationCommandOptionChannel{
+					Name:        "canal",
+					Description: "El canal de la starboard.",
+					DescriptionLocalizations: map[discord.Locale]string{
+						discord.LocaleEnglishUS: "The channel of the starboard.",
+						discord.LocaleEnglishGB: "The channel of the starboard.",
 					},
 					Required: false,
 				},

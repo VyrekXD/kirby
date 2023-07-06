@@ -5,7 +5,6 @@ import (
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/forPelevin/gomoji"
 )
 
 func WaitDo(timeout time.Duration, do func()) {
@@ -36,24 +35,28 @@ func ReadableBool(b *bool, trueValue string, falseValue string) string {
 	}
 }
 
-func ParseEmoji(
-	s bot.Client,
-	guildId snowflake.ID,
-	emoji string,
-) (string, error) {
-	if res := gomoji.FindAll(emoji); res != nil {
+func ParseEmoji(emoji string, gId snowflake.ID, c bot.Client) (string, error) {
+	id, err := snowflake.Parse(emoji)
+	if err != nil {
 		return emoji, nil
 	} else {
-		id, err := snowflake.Parse(emoji)
+		data, err := c.Rest().GetEmoji(id, id)
 		if err != nil {
 			return "", err
 		}
 
-		e, err := s.Rest().GetEmoji(guildId, id)
-		if err != nil {
-			return "", err
-		}
-
-		return e.String(), err
+		return data.Mention(), nil
 	}
+}
+
+type MapCallback[T any] func(v T) T
+
+func Map[T any](arr []T, callback MapCallback[T]) []T {
+	arr = make([]T, len(arr))
+
+	for i, v := range arr {
+		arr[i] = callback(v)
+	}
+
+	return arr
 }

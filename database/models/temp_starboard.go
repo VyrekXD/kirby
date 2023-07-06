@@ -2,7 +2,7 @@ package models
 
 import "github.com/kamva/mgm/v3"
 
-var (
+const (
 	PhaseSelectChannel = 0
 	PhaseModal         = 1
 	PhaseBotsReact     = 2

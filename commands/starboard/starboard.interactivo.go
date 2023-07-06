@@ -63,7 +63,6 @@ func StarboardInteractivo(ctx *handler.CommandEvent) error {
 		ctx.Client().Rest().UpdateInteractionResponse(ctx.ApplicationID(), ctx.Token(), discord.MessageUpdate{
 			Content: langs.Pack(guildData.Lang).
 				Command("starboard").
-				SubCommand("manual").
 				Getf("errUnexpected", err),
 		})
 
@@ -79,7 +78,6 @@ func StarboardInteractivo(ctx *handler.CommandEvent) error {
 			UpdateInteractionResponse(ctx.ApplicationID(), ctx.Token(), discord.MessageUpdate{
 				Content: langs.Pack(guildData.Lang).
 					Command("starboard").
-					SubCommand("manual").
 					Getf("errUnexpected", err),
 			})
 

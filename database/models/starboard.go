@@ -2,6 +2,11 @@ package models
 
 import "github.com/kamva/mgm/v3"
 
+const (
+	BlackList = false
+	WhiteList = true
+)
+
 type Starboard struct {
 	mgm.DefaultModel `bson:",inline"`
 
@@ -34,7 +39,7 @@ type Starboard struct {
 	// the array is cleaned False counts as a "blacklist", NOTE: The server cant
 	// have more than one blacklist starboard.
 	// - Starboard will be global and will ignore the channels on the list
-	// True counts as a "whitelisDefaultModel
+	// True counts as a "whitelist"
 	// - Starboard will only detect channels on the list.
 	ChannelListType bool     `json:"channel_list_type" bson:"channel_list_type"`
 	ChannelList     []string `json:"channel_list"      bson:"channel_list"`
